@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
+import { BilibiliSubtitleTrackUnavailableError, fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
 import { writeOfficialSubtitleSnapshot, writeTranscriptManifest } from "@/lib/media/artifacts";
 import { buildFrameTranscriptWindows, filterSegmentsToWindows, transcriptWindowRadiusSec } from "@/lib/media/transcript-windows";
@@ -60,6 +60,24 @@ export async function POST(
       windows: windows.length,
     });
   } catch (error) {
+    if (error instanceof BilibiliSubtitleTrackUnavailableError) {
+      return NextResponse.json(
+        {
+          asset,
+          error:
+            "检测到 B 站官方字幕轨道，但当前匿名接口没有返回字幕文件地址。可以在 .env.local 配置 BILIBILI_COOKIE 后重试；否则请提取音频并执行音频 ASR。",
+          source: "bilibili_subtitle",
+          subtitleTracks: error.tracks.map((track) => ({
+            id: track.id,
+            idStr: track.id_str,
+            language: track.lan_doc || track.lan || "未知语言",
+            hasUrl: Boolean(track.subtitle_url || track.subtitle_url_v2),
+          })),
+        },
+        { status: 409 },
+      );
+    }
+
     const message = error instanceof Error ? error.message : "字幕提取失败。";
     const failedAsset = markAssetFailed(asset.id, message);
 

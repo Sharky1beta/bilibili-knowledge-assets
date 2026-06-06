@@ -24,6 +24,9 @@ type BilibiliViewResponse = {
       part: string;
       duration: number;
     }>;
+    subtitle?: {
+      list?: BilibiliSubtitleTrack[];
+    };
   };
 };
 
@@ -66,13 +69,18 @@ type BilibiliPlayerV2Response = {
   message: string;
   data?: {
     subtitle?: {
-      subtitles?: Array<{
-        lan?: string;
-        lan_doc?: string;
-        subtitle_url?: string;
-      }>;
+      subtitles?: BilibiliSubtitleTrack[];
     };
   };
+};
+
+type BilibiliSubtitleTrack = {
+  id?: number;
+  id_str?: string;
+  lan?: string;
+  lan_doc?: string;
+  subtitle_url?: string;
+  subtitle_url_v2?: string;
 };
 
 type BilibiliSubtitleResponse = {
@@ -110,6 +118,13 @@ export class BilibiliError extends Error {
   ) {
     super(message);
     this.name = "BilibiliError";
+  }
+}
+
+export class BilibiliSubtitleTrackUnavailableError extends BilibiliError {
+  constructor(public readonly tracks: BilibiliSubtitleTrack[]) {
+    super("检测到 B 站官方字幕轨道，但接口没有返回可下载的字幕文件地址。");
+    this.name = "BilibiliSubtitleTrackUnavailableError";
   }
 }
 
@@ -245,12 +260,16 @@ export async function fetchBilibiliSubtitleSegments(asset: {
     throw new BilibiliError(payload.message || "Bilibili subtitle metadata returned no data.", payload.code);
   }
 
-  const subtitle = payload.data.subtitle?.subtitles?.find((item) => item.subtitle_url) ?? null;
-  if (!subtitle?.subtitle_url) {
+  const tracks = await findSubtitleTracks(payload, asset, referer);
+  const subtitle = preferredSubtitleTrack(tracks);
+  if (!subtitle) {
+    if (tracks.length) {
+      throw new BilibiliSubtitleTrackUnavailableError(tracks);
+    }
     return [];
   }
 
-  const subtitleUrl = normalizeBilibiliResourceUrl(subtitle.subtitle_url);
+  const subtitleUrl = normalizeBilibiliResourceUrl(subtitle.subtitle_url || subtitle.subtitle_url_v2 || "");
   const subtitleResponse = await fetch(subtitleUrl, {
     headers: bilibiliHeaders(referer),
     cache: "no-store",
@@ -269,6 +288,91 @@ export async function fetchBilibiliSubtitleSegments(asset: {
       summary: null,
     }))
     .filter((item) => Number.isFinite(item.startSec) && Number.isFinite(item.endSec) && item.text);
+}
+
+async function findSubtitleTracks(
+  playerPayload: BilibiliPlayerV2Response,
+  asset: {
+    aid: number | null;
+    bvid: string | null;
+    cid: number | null;
+    url: string;
+  },
+  referer: string,
+) {
+  const playerTracks = playerPayload.data?.subtitle?.subtitles ?? [];
+  const usablePlayerTracks = playerTracks.filter(isSubtitleTrack);
+  if (usablePlayerTracks.some(hasSubtitleUrl)) {
+    return usablePlayerTracks;
+  }
+
+  const viewTracks = await fetchSubtitleTracksFromView(asset, referer).catch(() => []);
+  return mergeSubtitleTracks([...usablePlayerTracks, ...viewTracks]);
+}
+
+async function fetchSubtitleTracksFromView(
+  asset: {
+    aid: number | null;
+    bvid: string | null;
+    url: string;
+  },
+  referer: string,
+) {
+  const params = new URLSearchParams();
+  if (asset.bvid) {
+    params.set("bvid", asset.bvid);
+  } else if (asset.aid) {
+    params.set("aid", String(asset.aid));
+  }
+
+  const response = await fetch(`https://api.bilibili.com/x/web-interface/view?${params.toString()}`, {
+    headers: bilibiliHeaders(referer),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = (await response.json()) as BilibiliViewResponse;
+  if (payload.code !== 0 || !payload.data) {
+    return [];
+  }
+
+  return (payload.data.subtitle?.list ?? []).filter(isSubtitleTrack);
+}
+
+function preferredSubtitleTrack(tracks: BilibiliSubtitleTrack[]) {
+  const tracksWithUrl = tracks.filter(hasSubtitleUrl);
+  return (
+    tracksWithUrl.find((track) => track.lan === "zh-CN" || track.lan === "zh") ??
+    tracksWithUrl.find((track) => track.lan?.startsWith("zh")) ??
+    tracksWithUrl[0] ??
+    null
+  );
+}
+
+function mergeSubtitleTracks(tracks: BilibiliSubtitleTrack[]) {
+  const seen = new Set<string>();
+  const merged: BilibiliSubtitleTrack[] = [];
+
+  for (const track of tracks) {
+    const key = track.id_str || String(track.id ?? "") || `${track.lan ?? ""}:${track.lan_doc ?? ""}`;
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    merged.push(track);
+  }
+
+  return merged;
+}
+
+function isSubtitleTrack(track: BilibiliSubtitleTrack) {
+  return Boolean(track.id || track.id_str || track.lan || track.lan_doc || track.subtitle_url || track.subtitle_url_v2);
+}
+
+function hasSubtitleUrl(track: BilibiliSubtitleTrack) {
+  return Boolean(track.subtitle_url || track.subtitle_url_v2);
 }
 
 async function fetchView(parsed: ParsedBilibiliInput): Promise<Omit<BilibiliMetadata, "tags">> {
@@ -340,11 +444,17 @@ async function fetchTags(bvid: string): Promise<string[]> {
 }
 
 function bilibiliHeaders(referer: string) {
-  return {
+  const headers: Record<string, string> = {
     "User-Agent": bilibiliUserAgent,
     Referer: referer,
     Accept: "application/json,text/plain,*/*",
   };
+
+  if (process.env.BILIBILI_COOKIE) {
+    headers.Cookie = process.env.BILIBILI_COOKIE;
+  }
+
+  return headers;
 }
 
 function normalizeBilibiliResourceUrl(url: string) {
