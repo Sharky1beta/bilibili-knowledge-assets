@@ -44,7 +44,7 @@ export function ExtractTranscriptButton({ assetId }: { assetId: string }) {
         <span aria-hidden={!isExtracting} className={isExtracting ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isExtracting ? "hidden" : "inline"}>Fetch subtitles</span>
+        <span className={isExtracting ? "hidden" : "inline"}>Fetch official subtitles</span>
         <span className={isExtracting ? "inline" : "hidden"}>Fetching subtitles...</span>
       </button>
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}

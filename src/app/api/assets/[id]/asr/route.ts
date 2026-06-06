@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { transcribeAudioWithGemini } from "@/lib/ai/transcript";
 import { getAssetDetail, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
+import { writeTranscriptManifest } from "@/lib/media/artifacts";
 import { extractAudioChunk, mediaSampleLimitSeconds } from "@/lib/media/ffmpeg";
 import type { TranscriptSegmentInput } from "@/lib/ai/transcript";
 
@@ -63,6 +64,12 @@ export async function POST(
     }
 
     const segments = replaceAssetSegments(asset.id, transcriptSegments);
+    await writeTranscriptManifest(asset.id, {
+      source: "gemini_audio_full",
+      segmentCount: segments.length,
+      chunks: chunks.length,
+      note: "Generated from the saved full audio file because official subtitles were unavailable or skipped.",
+    });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
     return NextResponse.json({

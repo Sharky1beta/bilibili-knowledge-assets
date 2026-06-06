@@ -187,19 +187,23 @@ Fallback:
 - If direct stream resolution fails, keep metadata-only asset and show a clear error.
 - Demo can still show already processed seeded assets.
 
-### Step 4: Download or Sample Video
+### Step 4: Save Media Artifacts
 
-Save under:
+The demo does not persist a full source video file. It keeps the reusable evidence needed by later steps:
 
 ```text
-data/assets/{assetId}/source.mp4
+public/assets/{assetId}/audio-full.mp3
+public/assets/{assetId}/frame-xxxxx.jpg
+public/assets/{assetId}/official-subtitles.json
+public/assets/{assetId}/transcript-manifest.json
 ```
 
 For 24h demo, cap processing:
 
 - Prefer first 10-20 minutes for very long videos.
-- Store this limitation clearly in README.
-- Keep full metadata so the limitation is explicit.
+- Extract full audio when the user requests transcript/ASR evidence.
+- Sample frames from a capped window for visual evidence.
+- Keep full metadata so duration and page count remain explicit.
 
 ### Step 5: Candidate Frame Extraction
 
@@ -257,8 +261,9 @@ Current implementation:
 - Adds `POST /api/assets/:id/asr` for videos without official subtitles.
 - ASR uses the saved full audio track, splits it into smaller chunks, and asks Gemini audio understanding to return timestamped transcript JSON per chunk.
 - Stores each transcript segment with `startSec`, `endSec`, `text`, and `summary`.
+- Writes a transcript manifest so the asset page can show whether the text layer came from official Bilibili subtitles or ASR.
 - Advances assets to `transcript_ready` unless the asset has already reached `asset_built` or `ready`.
-- Asset detail page includes separate `Extract audio`, `Fetch subtitles`, and `Transcribe audio` actions and shows the transcript segment timeline.
+- Asset detail page includes separate `Extract full audio`, `Fetch official subtitles`, and `ASR from full audio` actions, plus a source media panel and transcript segment timeline.
 
 The demo should degrade gracefully:
 

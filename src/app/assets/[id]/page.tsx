@@ -10,6 +10,7 @@ import { ProcessAssetButton } from "@/components/process-asset-button";
 import { StatusPill } from "@/components/status-pill";
 import { TranscribeAudioButton } from "@/components/transcribe-audio-button";
 import { getAssetDetail } from "@/lib/db/assets";
+import { getAudioArtifactInfo, readTranscriptManifest } from "@/lib/media/artifacts";
 
 export default async function AssetPage({
   params,
@@ -24,6 +25,8 @@ export default async function AssetPage({
   }
 
   const { asset, frames, segments, knowledgeItems } = detail;
+  const audioArtifact = await getAudioArtifactInfo(asset.id);
+  const transcriptManifest = await readTranscriptManifest(asset.id);
 
   return (
     <div className="px-6 py-6 lg:px-10">
@@ -212,6 +215,52 @@ export default async function AssetPage({
           </div>
 
           <div className="rounded-lg border border-[var(--line)] bg-white p-5">
+            <h2 className="text-base font-semibold">Source media</h2>
+            <div className="mt-4 grid gap-4 text-sm">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Full audio</div>
+                {audioArtifact ? (
+                  <div className="mt-2 rounded-lg bg-[var(--panel-soft)] p-3">
+                    <a
+                      href={audioArtifact.publicPath}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-[var(--accent)] hover:underline"
+                    >
+                      audio-full.mp3
+                    </a>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{formatBytes(audioArtifact.bytes)} saved locally</p>
+                  </div>
+                ) : (
+                  <p className="mt-2 rounded-lg border border-dashed border-[var(--line)] p-3 text-[var(--muted)]">
+                    Not extracted yet. Use Extract full audio before ASR.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Transcript layer</div>
+                {transcriptManifest ? (
+                  <div className="mt-2 rounded-lg bg-[var(--panel-soft)] p-3">
+                    <div className="font-semibold">{formatTranscriptSource(transcriptManifest.source)}</div>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {transcriptManifest.segmentCount} timestamped segments
+                      {transcriptManifest.chunks ? ` from ${transcriptManifest.chunks} audio chunks` : ""}
+                    </p>
+                    {transcriptManifest.note ? (
+                      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{transcriptManifest.note}</p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="mt-2 rounded-lg border border-dashed border-[var(--line)] p-3 text-[var(--muted)]">
+                    Try official Bilibili subtitles first. If none exist, extract full audio and run ASR.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[var(--line)] bg-white p-5">
             <h2 className="text-base font-semibold">Processing status</h2>
             <ol className="mt-4 grid gap-3 text-sm text-[var(--muted)]">
               {[
@@ -258,6 +307,22 @@ function formatDuration(seconds: number) {
   }
 
   return `${minutes}m ${rest}s`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatTranscriptSource(source: string) {
+  if (source === "bilibili_subtitle") {
+    return "Official Bilibili subtitles";
+  }
+
+  return "ASR from saved full audio";
 }
 
 function shortId(id: string) {

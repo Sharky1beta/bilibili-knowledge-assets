@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchBilibiliPlayUrl } from "@/lib/bilibili/client";
-import { getAssetDetail, markAssetFailed } from "@/lib/db/assets";
+import { getAssetDetail, markAssetFailed, updateAssetStatus } from "@/lib/db/assets";
 import { extractFullAudio } from "@/lib/media/ffmpeg";
 
 export async function POST(
@@ -29,9 +29,10 @@ export async function POST(
       playUrl,
       durationSec: asset.duration,
     });
+    const updatedAsset = advanceMediaStatus(asset.id, asset.status);
 
     return NextResponse.json({
-      asset,
+      asset: updatedAsset,
       audio,
       source: "bilibili_playurl",
     });
@@ -41,4 +42,16 @@ export async function POST(
 
     return NextResponse.json({ asset: failedAsset, error: message }, { status: 500 });
   }
+}
+
+function advanceMediaStatus(assetId: string, currentStatus: string) {
+  if (
+    currentStatus === "created" ||
+    currentStatus === "metadata_fetched" ||
+    currentStatus === "video_resolved"
+  ) {
+    return updateAssetStatus(assetId, "media_downloaded");
+  }
+
+  return getAssetDetail(assetId)!.asset;
 }

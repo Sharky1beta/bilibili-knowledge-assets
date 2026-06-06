@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
+import { writeOfficialSubtitleSnapshot, writeTranscriptManifest } from "@/lib/media/artifacts";
 
 export async function POST(
   _request: Request,
@@ -36,6 +37,12 @@ export async function POST(
     }
 
     const segments = replaceAssetSegments(asset.id, segmentsFromSubtitles);
+    await writeOfficialSubtitleSnapshot(asset.id, segmentsFromSubtitles);
+    await writeTranscriptManifest(asset.id, {
+      source: "bilibili_subtitle",
+      segmentCount: segments.length,
+      note: "Official Bilibili subtitle file was fetched and normalized into timestamped segments.",
+    });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
     return NextResponse.json({
