@@ -327,12 +327,13 @@ function normalizeGeneratedContent(
         const citations = citationsForKeys(details, stringArray(card.citationKeys));
         const imageCitation = citationForKey(details, stringOrNull(card.imageKey));
         const primaryCitation = ensureCitations(details, imageCitation ? [imageCitation, ...citations] : citations);
+        const displayCitation = firstFrameCitation(primaryCitation);
         return {
           claim: stringOrFallback(card.claim, "Evidence card"),
           evidenceType: normalizeEvidenceType(card.evidenceType),
           explanation: stringOrFallback(card.explanation, "This claim is grounded in the cited source."),
-          imagePath: imageCitation?.imagePath ?? null,
-          timestampSec: imageCitation?.timestampSec ?? null,
+          imagePath: displayCitation?.imagePath ?? null,
+          timestampSec: displayCitation?.timestampSec ?? null,
           visibleEvidence: stringArray(card.visibleEvidence),
           citations: dedupeCitations(primaryCitation),
         };
@@ -371,11 +372,12 @@ function normalizeGeneratedContent(
         ...(imageCitation ? [imageCitation] : []),
         ...citationsForKeys(details, stringArray(section.citationKeys)),
       ]));
+      const displayCitation = firstFrameCitation(citations);
       return {
         heading: stringOrFallback(section.heading, "Illustrated section"),
         summary: stringOrFallback(section.summary, "This section is grounded in stored visual evidence."),
-        imagePath: imageCitation?.imagePath ?? null,
-        timestampSec: imageCitation?.timestampSec ?? null,
+        imagePath: displayCitation?.imagePath ?? null,
+        timestampSec: displayCitation?.timestampSec ?? null,
         citations,
       };
     }).slice(0, 8),
@@ -480,6 +482,10 @@ function ensureCitations(details: AssetDetail[], citations: Citation[]) {
     .find(Boolean);
 
   return fallback ? [fallback] : [];
+}
+
+function firstFrameCitation(citations: Citation[]) {
+  return citations.find((citation) => citation.kind === "frame" && citation.imagePath);
 }
 
 function fallbackFactRows(details: AssetDetail[]) {
