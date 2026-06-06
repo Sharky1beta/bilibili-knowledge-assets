@@ -4,12 +4,24 @@ import Image from "next/image";
 import { useState } from "react";
 import { FileText, Layers3, Loader2, Sparkles } from "lucide-react";
 import type { Citation, GeneratedContent } from "@/lib/ai/outputs";
-import type { Asset, OutputMode } from "@/lib/types";
+import type { Asset, AssetStatus, OutputMode } from "@/lib/types";
+import { StatusPill } from "@/components/status-pill";
 
 const modes: { value: OutputMode; label: string }[] = [
   { value: "illustrated_summary", label: "Illustrated Summary" },
   { value: "evidence_cards", label: "Evidence Cards" },
   { value: "multi_video_synthesis", label: "Multi-Video Synthesis" },
+];
+
+const statusSteps: AssetStatus[] = [
+  "created",
+  "metadata_fetched",
+  "video_resolved",
+  "media_downloaded",
+  "frames_extracted",
+  "visual_understood",
+  "asset_built",
+  "ready",
 ];
 
 export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
@@ -42,21 +54,16 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
         <h2 className="text-base font-semibold">Sources</h2>
         <div className="mt-4 grid gap-2">
           {assets.map((asset) => (
-            <label key={asset.id} className="flex cursor-pointer gap-3 rounded-lg border border-[var(--line)] p-3 text-sm">
-              <input
-                type="checkbox"
-                checked={selected.includes(asset.id)}
-                onChange={(event) => {
-                  setSelected((current) =>
-                    event.target.checked ? [...current, asset.id] : current.filter((id) => id !== asset.id),
-                  );
-                }}
-              />
-              <span>
-                <span className="block font-medium">{asset.title}</span>
-                <span className="mt-1 block text-xs text-[var(--muted)]">{asset.status}</span>
-              </span>
-            </label>
+            <SourceAssetOption
+              key={asset.id}
+              asset={asset}
+              checked={selected.includes(asset.id)}
+              onChange={(checked) => {
+                setSelected((current) =>
+                  checked ? [...current, asset.id] : current.filter((id) => id !== asset.id),
+                );
+              }}
+            />
           ))}
         </div>
 
@@ -106,6 +113,43 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
         </div>
       </section>
     </div>
+  );
+}
+
+function SourceAssetOption({
+  asset,
+  checked,
+  onChange,
+}: {
+  asset: Asset;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const progress = statusProgress(asset.status);
+
+  return (
+    <label className="flex cursor-pointer gap-3 rounded-lg border border-[var(--line)] p-3 text-sm">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{asset.title}</span>
+        <span className="mt-2 flex items-center justify-between gap-3">
+          <StatusPill status={asset.status} />
+          <span className="font-mono text-[11px] text-[var(--muted)]">
+            {progress.current}/{statusSteps.length}
+          </span>
+        </span>
+        <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-[var(--panel-soft)]">
+          <span
+            className="block h-full rounded-full bg-[var(--accent)]"
+            style={{ width: `${progress.percent}%` }}
+          />
+        </span>
+      </span>
+    </label>
   );
 }
 
@@ -275,4 +319,17 @@ function formatTime(seconds: number) {
 
 function shortId(id: string) {
   return id.length > 10 ? id.slice(0, 10) : id;
+}
+
+function statusProgress(status: AssetStatus) {
+  if (status === "failed") {
+    return { current: 0, percent: 100 };
+  }
+
+  const index = statusSteps.indexOf(status);
+  const current = index >= 0 ? index + 1 : 0;
+  return {
+    current,
+    percent: Math.round((current / statusSteps.length) * 100),
+  };
 }
