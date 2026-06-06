@@ -93,7 +93,7 @@ export default async function AssetPage({
                         </span>
                       </div>
                       <p className="mt-3 text-sm leading-6">{frame.summary}</p>
-                      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">{frame.retentionReason}</p>
+                      <p className="mt-3 text-xs leading-5 text-[var(--muted)]">{formatRetentionReason(frame.retentionReason)}</p>
                       <div className="mt-3">
                         <div className="mb-1 flex items-center justify-between text-xs text-[var(--muted)]">
                           <span>Information density</span>
@@ -255,4 +255,12 @@ function formatDuration(seconds: number) {
 
 function shortId(id: string) {
   return id.length > 12 ? id.slice(0, 12) : id;
+}
+
+function formatRetentionReason(reason: string) {
+  if (reason.includes("Milestone 3") || reason.includes("Milestone 4")) {
+    return "Candidate frame for visual review.";
+  }
+
+  return reason;
 }

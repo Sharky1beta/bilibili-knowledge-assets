@@ -216,7 +216,7 @@ export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): F
         JSON.stringify([]),
         "candidate",
         0.3,
-        "Selected as a time-spread candidate for Milestone 3; Milestone 4 will score information density.",
+        "Candidate frame for visual review.",
         JSON.stringify([]),
       );
     }
