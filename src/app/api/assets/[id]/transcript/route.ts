@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { BilibiliSubtitleTrackUnavailableError, fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
+import {
+  BilibiliSubtitleTrackUnavailableError,
+  fetchBilibiliSubtitleSegments,
+  fetchBilibiliSubtitleSegmentsFromUrl,
+} from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
 import { writeOfficialSubtitleSnapshot, writeTranscriptManifest } from "@/lib/media/artifacts";
 import { buildFrameTranscriptWindows, filterSegmentsToWindows, transcriptWindowRadiusSec } from "@/lib/media/transcript-windows";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -24,7 +28,12 @@ export async function POST(
   }
 
   try {
-    const segmentsFromSubtitles = await fetchBilibiliSubtitleSegments(asset);
+    const body = (await request.json().catch(() => null)) as { subtitleUrl?: string } | null;
+    const manualSubtitleUrl = body?.subtitleUrl?.trim();
+    const referer = asset.bvid ? `https://www.bilibili.com/video/${asset.bvid}` : asset.url;
+    const segmentsFromSubtitles = manualSubtitleUrl
+      ? await fetchBilibiliSubtitleSegmentsFromUrl(manualSubtitleUrl, referer)
+      : await fetchBilibiliSubtitleSegments(asset);
 
     if (!segmentsFromSubtitles.length) {
       return NextResponse.json(
@@ -48,8 +57,8 @@ export async function POST(
       source: "bilibili_subtitle",
       segmentCount: segments.length,
       note: windows.length
-        ? `已将 B 站官方字幕过滤到关键帧前后 ${transcriptWindowRadiusSec} 秒窗口。`
-        : "已抓取 B 站官方字幕，并规范化为带时间戳片段。",
+        ? `已将${manualSubtitleUrl ? "手动导入的" : ""} B 站官方字幕过滤到关键帧前后 ${transcriptWindowRadiusSec} 秒窗口。`
+        : `已${manualSubtitleUrl ? "手动导入" : "抓取"} B 站官方字幕，并规范化为带时间戳片段。`,
     });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
@@ -58,6 +67,7 @@ export async function POST(
       segments,
       source: "bilibili_subtitle",
       windows: windows.length,
+      importedFromUrl: Boolean(manualSubtitleUrl),
     });
   } catch (error) {
     if (error instanceof BilibiliSubtitleTrackUnavailableError) {

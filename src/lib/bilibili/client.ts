@@ -270,13 +270,22 @@ export async function fetchBilibiliSubtitleSegments(asset: {
   }
 
   const subtitleUrl = normalizeBilibiliResourceUrl(subtitle.subtitle_url || subtitle.subtitle_url_v2 || "");
+  return fetchBilibiliSubtitleSegmentsFromUrl(subtitleUrl, referer);
+}
+
+export async function fetchBilibiliSubtitleSegmentsFromUrl(url: string, referer: string): Promise<BilibiliSubtitleSegment[]> {
+  const subtitleUrl = normalizeBilibiliResourceUrl(url.trim());
+  if (!subtitleUrl || !/^https?:\/\/.+\.json(?:\?|$)/i.test(subtitleUrl)) {
+    throw new BilibiliError("请粘贴 B 站字幕 JSON 文件 URL。");
+  }
+
   const subtitleResponse = await fetch(subtitleUrl, {
     headers: bilibiliHeaders(referer),
     cache: "no-store",
   });
 
   if (!subtitleResponse.ok) {
-    throw new BilibiliError(`Bilibili subtitle file request failed with HTTP ${subtitleResponse.status}.`);
+    throw new BilibiliError(`B 站字幕 JSON 请求失败，HTTP ${subtitleResponse.status}。`);
   }
 
   const subtitlePayload = (await subtitleResponse.json()) as BilibiliSubtitleResponse;
