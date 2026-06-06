@@ -35,10 +35,17 @@ export function AnalyzeVisionButton({ assetId }: { assetId: string }) {
         type="button"
         onClick={analyzeVision}
         disabled={isAnalyzing}
+        translate="no"
         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#2563eb] px-4 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
-        {isAnalyzing ? "Analyzing vision..." : "Analyze vision"}
+        <span aria-hidden={isAnalyzing} className={isAnalyzing ? "hidden" : "inline-flex"}>
+          <Eye size={16} />
+        </span>
+        <span aria-hidden={!isAnalyzing} className={isAnalyzing ? "inline-flex" : "hidden"}>
+          <Loader2 size={16} className="animate-spin" />
+        </span>
+        <span className={isAnalyzing ? "hidden" : "inline"}>Analyze vision</span>
+        <span className={isAnalyzing ? "inline" : "hidden"}>Analyzing vision...</span>
       </button>
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
     </div>

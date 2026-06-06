@@ -35,10 +35,17 @@ export function BuildKnowledgeButton({ assetId }: { assetId: string }) {
         type="button"
         onClick={buildKnowledge}
         disabled={isBuilding}
+        translate="no"
         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#7c3aed] px-4 text-sm font-semibold text-white transition hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isBuilding ? <Loader2 size={16} className="animate-spin" /> : <Boxes size={16} />}
-        {isBuilding ? "Building asset..." : "Build asset"}
+        <span aria-hidden={isBuilding} className={isBuilding ? "hidden" : "inline-flex"}>
+          <Boxes size={16} />
+        </span>
+        <span aria-hidden={!isBuilding} className={isBuilding ? "inline-flex" : "hidden"}>
+          <Loader2 size={16} className="animate-spin" />
+        </span>
+        <span className={isBuilding ? "hidden" : "inline"}>Build asset</span>
+        <span className={isBuilding ? "inline" : "hidden"}>Building asset...</span>
       </button>
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
     </div>

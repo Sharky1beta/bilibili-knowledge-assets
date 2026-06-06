@@ -35,10 +35,17 @@ export function ProcessAssetButton({ assetId }: { assetId: string }) {
         type="button"
         onClick={processAsset}
         disabled={isProcessing}
+        translate="no"
         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:bg-[#195f48] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <ScanSearch size={16} />}
-        {isProcessing ? "Extracting frames..." : "Extract frames"}
+        <span aria-hidden={isProcessing} className={isProcessing ? "hidden" : "inline-flex"}>
+          <ScanSearch size={16} />
+        </span>
+        <span aria-hidden={!isProcessing} className={isProcessing ? "inline-flex" : "hidden"}>
+          <Loader2 size={16} className="animate-spin" />
+        </span>
+        <span className={isProcessing ? "hidden" : "inline"}>Extract frames</span>
+        <span className={isProcessing ? "inline" : "hidden"}>Extracting frames...</span>
       </button>
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
     </div>

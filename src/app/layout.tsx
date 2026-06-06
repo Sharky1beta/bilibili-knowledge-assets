@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" translate="no" suppressHydrationWarning>
+      <body className="notranslate">
         <div className="shell-grid">
           <aside className="border-r border-[var(--line)] bg-white px-5 py-6">
             <Link href="/" className="block">
