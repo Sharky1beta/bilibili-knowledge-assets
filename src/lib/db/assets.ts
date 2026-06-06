@@ -213,6 +213,11 @@ export function markBuiltAssetsReady(assetIds: string[]): Asset[] {
     .filter(Boolean) as Asset[];
 }
 
+export function deleteAsset(assetId: string): boolean {
+  const result = getDb().prepare("DELETE FROM assets WHERE id = ?").run(assetId);
+  return result.changes > 0;
+}
+
 export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): Frame[] {
   const database = getDb();
   const deleteFrames = database.prepare("DELETE FROM frames WHERE asset_id = ?");

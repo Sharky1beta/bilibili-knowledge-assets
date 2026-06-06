@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Clock3, Image as ImageIcon, MessageSquareText } from "lucide-react";
+import { DeleteAssetButton } from "@/components/delete-asset-button";
 import { StatusPill } from "@/components/status-pill";
 import { UrlIntake } from "@/components/url-intake";
 import { createDemoAsset, listAssets } from "@/lib/db/assets";
@@ -48,11 +49,13 @@ export default function HomePage() {
             </div>
             <div className="mt-4 grid gap-3">
               {assets.map((asset) => (
-                <Link
+                <article
                   key={asset.id}
-                  href={`/assets/${asset.id}`}
-                  className="group grid gap-3 rounded-lg border border-[var(--line)] p-4 transition hover:border-[var(--accent)] hover:bg-[var(--panel-soft)] md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="relative grid gap-3 rounded-lg border border-[var(--line)] p-4 pr-14 transition hover:border-[var(--accent)] hover:bg-[var(--panel-soft)] md:grid-cols-[minmax(0,1fr)_auto]"
                 >
+                  <div className="absolute right-4 top-4">
+                    <DeleteAssetButton assetId={asset.id} title={asset.title} />
+                  </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="truncate font-semibold">{asset.title}</h3>
@@ -73,11 +76,16 @@ export default function HomePage() {
                       <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">{asset.errorMessage}</p>
                     ) : null}
                   </div>
-                  <div className="flex items-center text-sm font-semibold text-[var(--accent)]">
-                    Open
-                    <ArrowRight size={16} className="ml-2 transition group-hover:translate-x-0.5" />
+                  <div className="flex items-center justify-end">
+                    <Link
+                      href={`/assets/${asset.id}`}
+                      className="group inline-flex items-center text-sm font-semibold text-[var(--accent)]"
+                    >
+                      Open
+                      <ArrowRight size={16} className="ml-2 transition group-hover:translate-x-0.5" />
+                    </Link>
                   </div>
-                </Link>
+                </article>
               ))}
             </div>
           </div>
