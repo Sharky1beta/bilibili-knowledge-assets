@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { transcribeAudioWithGemini } from "@/lib/ai/transcript";
-import { fetchBilibiliPlayUrl, fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
+import { fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
-import { extractAudioSample, mediaSampleLimitSeconds } from "@/lib/media/ffmpeg";
 
 export async function POST(
   _request: Request,
@@ -24,40 +22,26 @@ export async function POST(
   }
 
   try {
-    const subtitleSegments = await fetchBilibiliSubtitleSegments(asset);
+    const segmentsFromSubtitles = await fetchBilibiliSubtitleSegments(asset);
 
-    if (subtitleSegments.length) {
-      const segments = replaceAssetSegments(asset.id, subtitleSegments);
-      const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
-      return NextResponse.json({
-        asset: updatedAsset,
-        segments,
-        source: "bilibili_subtitle",
-      });
+    if (!segmentsFromSubtitles.length) {
+      return NextResponse.json(
+        {
+          asset,
+          error: "No official Bilibili subtitles were found. Extract full audio, then run ASR transcription.",
+          source: "bilibili_subtitle",
+        },
+        { status: 404 },
+      );
     }
 
-    const playUrl = await fetchBilibiliPlayUrl(asset);
-    const audio = await extractAudioSample({
-      assetId: asset.id,
-      playUrl,
-      durationSec: asset.duration,
-    });
-    const transcriptSegments = await transcribeAudioWithGemini({
-      asset,
-      audioPath: audio.absolutePath,
-      mimeType: audio.mimeType,
-      durationSec: audio.durationSec,
-    });
-    const segments = replaceAssetSegments(asset.id, transcriptSegments);
+    const segments = replaceAssetSegments(asset.id, segmentsFromSubtitles);
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
     return NextResponse.json({
       asset: updatedAsset,
       segments,
-      source: "gemini_audio",
-      limits: {
-        mediaSampleLimitSeconds,
-      },
+      source: "bilibili_subtitle",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Transcript extraction failed.";

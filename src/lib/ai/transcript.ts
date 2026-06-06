@@ -28,10 +28,11 @@ export async function transcribeAudioWithGemini(options: {
   audioPath: string;
   mimeType: "audio/mpeg";
   durationSec: number;
+  offsetSec?: number;
 }): Promise<TranscriptSegmentInput[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return fallbackTranscript(options.asset, options.durationSec);
+    return fallbackTranscript(options.asset, options.durationSec, options.offsetSec ?? 0);
   }
 
   const audioBase64 = await fs.readFile(options.audioPath, { encoding: "base64" });
@@ -43,6 +44,7 @@ export async function transcribeAudioWithGemini(options: {
       "Content-Type": "application/json",
       "x-goog-api-key": apiKey,
     },
+    signal: AbortSignal.timeout(75_000),
     body: JSON.stringify({
       contents: [
         {
@@ -54,7 +56,7 @@ export async function transcribeAudioWithGemini(options: {
               },
             },
             {
-              text: transcriptPrompt(options.asset, options.durationSec),
+              text: transcriptPrompt(options.asset, options.durationSec, options.offsetSec ?? 0),
             },
           ],
         },
@@ -76,17 +78,18 @@ export async function transcribeAudioWithGemini(options: {
     throw new Error("Gemini returned no transcript text.");
   }
 
-  const segments = normalizeTranscriptSegments(parseJson(text), options.durationSec);
-  return segments.length ? segments : fallbackTranscript(options.asset, options.durationSec);
+  const segments = normalizeTranscriptSegments(parseJson(text), options.durationSec, options.offsetSec ?? 0);
+  return segments.length ? segments : fallbackTranscript(options.asset, options.durationSec, options.offsetSec ?? 0);
 }
 
-function transcriptPrompt(asset: Asset, durationSec: number) {
+function transcriptPrompt(asset: Asset, durationSec: number, offsetSec: number) {
   return `
-You are transcribing an audio sample from a Bilibili long video.
+You are transcribing an audio chunk from a full Bilibili long-video audio track.
 
 Asset title: ${asset.title}
 Asset description: ${asset.description ?? "No description."}
-Sample duration: ${durationSec} seconds.
+Chunk starts at ${offsetSec} seconds in the original video.
+Chunk duration: ${durationSec} seconds.
 
 Return strict JSON only:
 {
@@ -102,6 +105,7 @@ Return strict JSON only:
 
 Rules:
 - Produce timestamped segments in chronological order.
+- Use timestamps relative to this chunk. The system will add the original-video offset.
 - Use the spoken language you hear. Do not translate unless the audio itself switches language.
 - Keep segments between 5 and 30 seconds when possible.
 - If the audio is music or mostly non-speech, describe it as non-speech/music with timestamps.
@@ -127,7 +131,7 @@ function parseJson(text: string) {
   }
 }
 
-function normalizeTranscriptSegments(raw: Record<string, unknown>, durationSec: number): TranscriptSegmentInput[] {
+function normalizeTranscriptSegments(raw: Record<string, unknown>, durationSec: number, offsetSec: number): TranscriptSegmentInput[] {
   if (!Array.isArray(raw.segments)) {
     return [];
   }
@@ -138,8 +142,8 @@ function normalizeTranscriptSegments(raw: Record<string, unknown>, durationSec: 
       const startSec = clampTime(record.startSec, durationSec);
       const endSec = clampTime(record.endSec, durationSec);
       return {
-        startSec: Math.min(startSec, endSec),
-        endSec: Math.max(startSec, endSec),
+        startSec: Math.min(startSec, endSec) + offsetSec,
+        endSec: Math.max(startSec, endSec) + offsetSec,
         text: typeof record.text === "string" ? record.text.trim() : "",
         summary: typeof record.summary === "string" && record.summary.trim() ? record.summary.trim() : null,
       };
@@ -148,12 +152,12 @@ function normalizeTranscriptSegments(raw: Record<string, unknown>, durationSec: 
     .slice(0, 80);
 }
 
-function fallbackTranscript(asset: Asset, durationSec: number): TranscriptSegmentInput[] {
+function fallbackTranscript(asset: Asset, durationSec: number, offsetSec = 0): TranscriptSegmentInput[] {
   const text = asset.description?.trim() || asset.title;
   return [
     {
-      startSec: 0,
-      endSec: Math.min(durationSec, 30),
+      startSec: offsetSec,
+      endSec: offsetSec + Math.min(durationSec, 30),
       text,
       summary: "Fallback transcript segment derived from metadata because ASR was unavailable.",
     },

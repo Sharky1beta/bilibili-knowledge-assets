@@ -14,6 +14,7 @@ export type ExtractedFrame = {
 
 export type ExtractedAudioSample = {
   absolutePath: string;
+  publicPath: string;
   durationSec: number;
   mimeType: "audio/mpeg";
 };
@@ -90,6 +91,7 @@ export async function extractAudioSample(options: {
 
       return {
         absolutePath: outputPath,
+        publicPath: `/assets/${options.assetId}/audio-sample.mp3`,
         durationSec: sampleDuration,
         mimeType: "audio/mpeg",
       };
@@ -99,6 +101,97 @@ export async function extractAudioSample(options: {
   }
 
   throw new Error(`All Bilibili stream mirrors failed during audio extraction. ${errors.at(-1) ?? ""}`);
+}
+
+export async function extractFullAudio(options: {
+  assetId: string;
+  playUrl: BilibiliPlayUrl;
+  durationSec: number | null;
+}): Promise<ExtractedAudioSample> {
+  const assetDir = path.join(process.cwd(), "public", "assets", options.assetId);
+  await fs.mkdir(assetDir, { recursive: true });
+
+  const durationSec = Math.max(1, Math.floor(options.durationSec ?? mediaSampleLimitSeconds));
+  const outputPath = path.join(assetDir, "audio-full.mp3");
+  const errors: string[] = [];
+
+  for (const url of options.playUrl.urls) {
+    try {
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-headers",
+        `Referer: ${options.playUrl.referer}\r\nUser-Agent: ${options.playUrl.userAgent}\r\n`,
+        "-i",
+        url,
+        "-t",
+        String(durationSec),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-b:a",
+        "48k",
+        outputPath,
+      ]);
+
+      return {
+        absolutePath: outputPath,
+        publicPath: `/assets/${options.assetId}/audio-full.mp3`,
+        durationSec,
+        mimeType: "audio/mpeg",
+      };
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`All Bilibili stream mirrors failed during full audio extraction. ${errors.at(-1) ?? ""}`);
+}
+
+export async function extractAudioChunk(options: {
+  assetId: string;
+  inputPath: string;
+  startSec: number;
+  durationSec: number;
+  index: number;
+}): Promise<ExtractedAudioSample> {
+  const assetDir = path.join(process.cwd(), "public", "assets", options.assetId);
+  await fs.mkdir(assetDir, { recursive: true });
+
+  const filename = `asr-chunk-${String(options.index).padStart(3, "0")}.mp3`;
+  const outputPath = path.join(assetDir, filename);
+
+  await runFfmpeg([
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-y",
+    "-ss",
+    String(options.startSec),
+    "-i",
+    options.inputPath,
+    "-t",
+    String(options.durationSec),
+    "-vn",
+    "-ac",
+    "1",
+    "-ar",
+    "16000",
+    "-b:a",
+    "48k",
+    outputPath,
+  ]);
+
+  return {
+    absolutePath: outputPath,
+    publicPath: `/assets/${options.assetId}/${filename}`,
+    durationSec: options.durationSec,
+    mimeType: "audio/mpeg",
+  };
 }
 
 async function extractSingleFrame(options: {

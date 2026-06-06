@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { AnalyzeVisionButton } from "@/components/analyze-vision-button";
 import { BuildKnowledgeButton } from "@/components/build-knowledge-button";
+import { ExtractAudioButton } from "@/components/extract-audio-button";
 import { ExtractTranscriptButton } from "@/components/extract-transcript-button";
 import { ProcessAssetButton } from "@/components/process-asset-button";
 import { StatusPill } from "@/components/status-pill";
+import { TranscribeAudioButton } from "@/components/transcribe-audio-button";
 import { getAssetDetail } from "@/lib/db/assets";
 
 export default async function AssetPage({
@@ -59,7 +61,9 @@ export default async function AssetPage({
           <div className="flex flex-wrap gap-2">
             <ProcessAssetButton assetId={asset.id} />
             <AnalyzeVisionButton assetId={asset.id} />
+            <ExtractAudioButton assetId={asset.id} />
             <ExtractTranscriptButton assetId={asset.id} />
+            <TranscribeAudioButton assetId={asset.id} />
             <BuildKnowledgeButton assetId={asset.id} />
             <a
               href={asset.url}

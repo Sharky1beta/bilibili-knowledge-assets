@@ -251,13 +251,14 @@ Priority:
 
 Current implementation:
 
-- Adds `POST /api/assets/:id/transcript`.
-- First calls `https://api.bilibili.com/x/player/v2` to discover Bilibili subtitle files.
-- If a subtitle file is available, fetches it and writes timestamped rows into `segments`.
-- If no subtitle exists, resolves the playable stream, extracts an mp3 audio sample with `ffmpeg`, and asks Gemini audio understanding to return timestamped transcript JSON.
+- Adds `POST /api/assets/:id/audio` to extract and save the full audio track as `public/assets/{assetId}/audio-full.mp3`.
+- Adds `POST /api/assets/:id/transcript` for official Bilibili subtitles only.
+- Calls `https://api.bilibili.com/x/player/v2` to discover subtitle files, then fetches the full subtitle JSON when available.
+- Adds `POST /api/assets/:id/asr` for videos without official subtitles.
+- ASR uses the saved full audio track, splits it into smaller chunks, and asks Gemini audio understanding to return timestamped transcript JSON per chunk.
 - Stores each transcript segment with `startSec`, `endSec`, `text`, and `summary`.
 - Advances assets to `transcript_ready` unless the asset has already reached `asset_built` or `ready`.
-- Asset detail page includes an `Extract transcript` action and shows the transcript segment timeline.
+- Asset detail page includes separate `Extract audio`, `Fetch subtitles`, and `Transcribe audio` actions and shows the transcript segment timeline.
 
 The demo should degrade gracefully:
 
