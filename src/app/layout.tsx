@@ -43,9 +43,6 @@ export default function RootLayout({
                 );
               })}
             </nav>
-            <div className="mt-10 rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-4 text-sm text-[var(--muted)]">
-              Milestone 1 focuses on the app shell, local memory store, and reusable asset workflow.
-            </div>
           </aside>
           <main className="min-w-0">{children}</main>
         </div>
