@@ -21,7 +21,7 @@ export function ProcessAssetButton({ assetId, disabledReason }: { assetId: strin
     setIsProcessing(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "Media processing failed.");
+      setError(payload.error ?? "媒体处理失败。");
       router.refresh();
       return;
     }
@@ -45,8 +45,8 @@ export function ProcessAssetButton({ assetId, disabledReason }: { assetId: strin
         <span aria-hidden={!isProcessing} className={isProcessing ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isProcessing ? "hidden" : "inline"}>Extract frames</span>
-        <span className={isProcessing ? "inline" : "hidden"}>Extracting frames...</span>
+        <span className={isProcessing ? "hidden" : "inline"}>抽取关键帧</span>
+        <span className={isProcessing ? "inline" : "hidden"}>正在抽帧...</span>
       </button>
       {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}

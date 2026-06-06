@@ -1,16 +1,16 @@
 import type { AssetStatus } from "@/lib/types";
 
 const labels: Record<AssetStatus, string> = {
-  created: "Created",
-  metadata_fetched: "Metadata",
-  video_resolved: "Stream",
-  media_downloaded: "Downloaded",
-  frames_extracted: "Frames",
-  visual_understood: "Vision",
-  transcript_ready: "Transcript",
-  asset_built: "Built",
-  ready: "Ready",
-  failed: "Failed",
+  created: "已创建",
+  metadata_fetched: "元数据",
+  video_resolved: "流已解析",
+  media_downloaded: "媒体已取",
+  frames_extracted: "已抽帧",
+  visual_understood: "视觉完成",
+  transcript_ready: "文本完成",
+  asset_built: "资产完成",
+  ready: "可复用",
+  failed: "失败",
 };
 
 export function StatusPill({ status }: { status: AssetStatus }) {

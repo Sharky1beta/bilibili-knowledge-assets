@@ -20,12 +20,12 @@ export async function POST(request: Request) {
   const url = body?.url?.trim();
 
   if (!url) {
-    return NextResponse.json({ error: "Provide a Bilibili URL." }, { status: 400 });
+    return NextResponse.json({ error: "请提供 B 站视频 URL。" }, { status: 400 });
   }
 
   const parsed = parseBilibiliInput(url);
   if (!parsed) {
-    return NextResponse.json({ error: "Only public Bilibili URLs, BV ids, or av ids are supported." }, { status: 400 });
+    return NextResponse.json({ error: "仅支持公开 B 站 URL、BV 号或 av 号。" }, { status: 400 });
   }
 
   const existingFromInput = parsed.kind === "bvid" ? findAssetByBvid(parsed.bvid) : findAssetByAid(parsed.aid);
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ assetId: asset.id, asset, reused: false });
   } catch (error) {
     const createdAsset = createAsset(parsed.normalizedUrl);
-    const message = error instanceof Error ? error.message : "Failed to fetch Bilibili metadata.";
+    const message = error instanceof Error ? error.message : "获取 B 站元数据失败。";
     const asset = markAssetFailed(createdAsset.id, message);
 
     return NextResponse.json({ assetId: asset.id, asset, reused: false, warning: message }, { status: 202 });
@@ -63,6 +63,6 @@ function reusedAssetResponse(asset: NonNullable<ReturnType<typeof findAssetByBvi
     assetId: asset.id,
     asset,
     reused: true,
-    message: "This Bilibili source already exists. Reusing the saved asset without reprocessing.",
+    message: "这个 B 站来源已经存在。本次直接复用已保存资产，不重新处理视频。",
   });
 }

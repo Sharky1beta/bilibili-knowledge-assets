@@ -21,9 +21,9 @@ type ReuseProof = {
 };
 
 const modes: { value: OutputMode; label: string }[] = [
-  { value: "illustrated_summary", label: "Illustrated Summary" },
-  { value: "evidence_cards", label: "Evidence Cards" },
-  { value: "multi_video_synthesis", label: "Multi-Video Synthesis" },
+  { value: "illustrated_summary", label: "图文总结" },
+  { value: "evidence_cards", label: "证据卡片" },
+  { value: "multi_video_synthesis", label: "多视频综合" },
 ];
 
 const statusSteps: AssetStatus[] = [
@@ -41,7 +41,7 @@ const statusSteps: AssetStatus[] = [
 export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
   const [selected, setSelected] = useState<string[]>(assets.slice(0, 1).map((asset) => asset.id));
   const [mode, setMode] = useState<OutputMode>("illustrated_summary");
-  const [prompt, setPrompt] = useState("Prioritize visual evidence, reusable facts, and concrete next actions.");
+  const [prompt, setPrompt] = useState("优先使用视觉证据、可复用事实和具体结论。");
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [reuseProof, setReuseProof] = useState<ReuseProof | null>(null);
@@ -72,7 +72,7 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
       <section className="rounded-lg border border-[var(--line)] bg-white p-5">
-        <h2 className="text-base font-semibold">Sources</h2>
+        <h2 className="text-base font-semibold">来源资产</h2>
         <div className="mt-4 grid gap-2">
           {assets.map((asset) => (
             <SourceAssetOption
@@ -88,7 +88,7 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
           ))}
         </div>
 
-        <h2 className="mt-6 text-base font-semibold">Mode</h2>
+        <h2 className="mt-6 text-base font-semibold">生成模式</h2>
         <div className="mt-3 grid gap-2">
           {modes.map((item) => (
             <button
@@ -107,7 +107,7 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
           ))}
         </div>
 
-        <h2 className="mt-6 text-base font-semibold">Focus prompt</h2>
+        <h2 className="mt-6 text-base font-semibold">关注点</h2>
         <textarea
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
@@ -119,14 +119,14 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
           className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {isLoading ? "Generating..." : "Generate output"}
+          {isLoading ? "正在生成..." : "生成结果"}
         </button>
       </section>
 
       <section className="rounded-lg border border-[var(--line)] bg-white p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">Output preview</h2>
-          {content ? <span className="rounded-md bg-[var(--panel-soft)] px-2 py-1 text-xs text-[var(--muted)]">{content.mode}</span> : null}
+          <h2 className="text-base font-semibold">输出预览</h2>
+          {content ? <span className="rounded-md bg-[var(--panel-soft)] px-2 py-1 text-xs text-[var(--muted)]">{formatMode(content.mode)}</span> : null}
         </div>
         {warning ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{warning}</p> : null}
         {reuseProof ? <ReuseProofPanel proof={reuseProof} /> : null}
@@ -147,10 +147,10 @@ function ReuseProofPanel({ proof }: { proof: ReuseProof }) {
           <div key={asset.assetId} className="rounded-md bg-white/75 px-3 py-2 text-xs text-emerald-900">
             <div className="truncate font-semibold">{asset.title}</div>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-emerald-800">
-              <span>metadata {asset.metadata ? "yes" : "no"}</span>
-              <span>frames {asset.frames}</span>
-              <span>transcript {asset.transcriptSegments}</span>
-              <span>knowledge {asset.knowledgeItems}</span>
+              <span>元数据 {asset.metadata ? "有" : "无"}</span>
+              <span>帧 {asset.frames}</span>
+              <span>文本 {asset.transcriptSegments}</span>
+              <span>知识 {asset.knowledgeItems}</span>
             </div>
           </div>
         ))}
@@ -212,7 +212,7 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
               ) : null}
               <div className="p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="rounded-md bg-[#e8f5ef] px-2 py-1 text-xs font-semibold text-[var(--accent)]">{card.evidenceType}</span>
+                  <span className="rounded-md bg-[#e8f5ef] px-2 py-1 text-xs font-semibold text-[var(--accent)]">{formatEvidenceType(card.evidenceType)}</span>
                   {card.timestampSec !== null ? <span className="font-mono text-xs text-[var(--muted)]">{formatTime(card.timestampSec)}</span> : null}
                 </div>
                 <h4 className="mt-3 text-sm font-semibold leading-6">{card.claim}</h4>
@@ -245,17 +245,17 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
             <div key={item.assetTitle} className="rounded-lg border border-[var(--line)] p-3">
               <h4 className="truncate text-sm font-semibold">{item.assetTitle}</h4>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--muted)]">
-                <span>Claims {item.claimCount}</span>
-                <span>Visual {item.visualFactCount}</span>
-                <span>Transcript {item.transcriptSegmentCount}</span>
-                <span>Frames {item.frameCount}</span>
+                <span>论点 {item.claimCount}</span>
+                <span>视觉 {item.visualFactCount}</span>
+                <span>文本 {item.transcriptSegmentCount}</span>
+                <span>帧 {item.frameCount}</span>
               </div>
             </div>
           ))}
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-[var(--line)] p-4">
-            <h4 className="text-sm font-semibold">Common themes</h4>
+            <h4 className="text-sm font-semibold">共同主题</h4>
             <ul className="mt-3 grid gap-2 text-sm leading-6 text-[var(--muted)]">
               {content.commonThemes.map((theme) => (
                 <li key={theme}>{theme}</li>
@@ -263,7 +263,7 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
             </ul>
           </div>
           <div className="rounded-lg border border-[var(--line)] p-4">
-            <h4 className="text-sm font-semibold">Open questions</h4>
+            <h4 className="text-sm font-semibold">待确认问题</h4>
             <ul className="mt-3 grid gap-2 text-sm leading-6 text-[var(--muted)]">
               {content.openQuestions.map((question) => (
                 <li key={question}>{question}</li>
@@ -272,11 +272,11 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
           </div>
         </div>
         <div className="mt-5 grid gap-4">
-          <h4 className="text-sm font-semibold">Layered evidence</h4>
+          <h4 className="text-sm font-semibold">分层证据</h4>
           <div className="grid gap-3 md:grid-cols-3">
             {content.layeredEvidence.map((item) => (
               <article key={`${item.layer}-${item.insight}`} className="rounded-lg border border-[var(--line)] p-4">
-                <span className="rounded-md bg-[#e8f5ef] px-2 py-1 text-xs font-semibold text-[var(--accent)]">{item.layer}</span>
+                <span className="rounded-md bg-[#e8f5ef] px-2 py-1 text-xs font-semibold text-[var(--accent)]">{formatEvidenceLayer(item.layer)}</span>
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{item.insight}</p>
                 <CitationList citations={item.citations} />
               </article>
@@ -284,7 +284,7 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
           </div>
         </div>
         <div className="mt-5 grid gap-4">
-          <h4 className="text-sm font-semibold">Comparison matrix</h4>
+          <h4 className="text-sm font-semibold">对比矩阵</h4>
           {content.comparisonMatrix.map((row) => (
             <article key={row.dimension} className="rounded-lg border border-[var(--line)] p-4">
               <h5 className="text-sm font-semibold">{row.dimension}</h5>
@@ -343,7 +343,7 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
         </div>
         <aside className="grid content-start gap-4">
           <div className="rounded-lg border border-[var(--line)] p-4">
-            <h4 className="text-sm font-semibold">Key facts</h4>
+            <h4 className="text-sm font-semibold">关键事实</h4>
             <div className="mt-3 grid gap-3">
               {content.keyFacts.map((fact) => (
                 <div key={fact.text} className="rounded-lg bg-[var(--panel-soft)] p-3">
@@ -354,7 +354,7 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
             </div>
           </div>
           <div className="rounded-lg border border-[var(--line)] p-4">
-            <h4 className="text-sm font-semibold">Actions</h4>
+            <h4 className="text-sm font-semibold">后续动作</h4>
             <ul className="mt-3 grid gap-2 text-sm leading-6 text-[var(--muted)]">
               {content.actionSuggestions.map((item) => (
                 <li key={item}>{item}</li>
@@ -376,7 +376,7 @@ function CitationList({ citations, compact = false }: { citations: Citation[]; c
     <div className={compact ? "mt-2 flex flex-wrap gap-1" : "mt-3 flex flex-wrap gap-2"}>
       {citations.slice(0, compact ? 3 : 6).map((citation) => (
         <span key={`${citation.assetTitle}-${citation.sourceId}`} className="rounded-md bg-white px-2 py-1 font-mono text-[11px] text-[var(--muted)]">
-          {citation.kind}:{shortId(citation.sourceId)}
+          {formatCitationKind(citation.kind)}:{shortId(citation.sourceId)}
           {citation.timestampSec !== null ? ` @${formatTime(citation.timestampSec)}` : ""}
         </span>
       ))}
@@ -388,7 +388,7 @@ function EmptyPreview() {
   return (
     <div className="flex min-h-96 items-center justify-center rounded-lg border border-dashed border-[var(--line)] bg-[var(--panel-soft)] p-8 text-center">
       <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
-        Choose one built asset for summary or cards, or select several assets for synthesis.
+        选择一个已构建资产生成总结/证据卡片，或选择多个资产做综合对比。
       </p>
     </div>
   );
@@ -405,6 +405,46 @@ function formatTime(seconds: number) {
 
 function shortId(id: string) {
   return id.length > 10 ? id.slice(0, 10) : id;
+}
+
+function formatMode(mode: OutputMode) {
+  const labels: Record<OutputMode, string> = {
+    illustrated_summary: "图文总结",
+    evidence_cards: "证据卡片",
+    multi_video_synthesis: "多视频综合",
+  };
+
+  return labels[mode];
+}
+
+function formatEvidenceType(type: string) {
+  const labels: Record<string, string> = {
+    "visual-only": "仅视觉",
+    "transcript-only": "仅文本",
+    mixed: "图文混合",
+  };
+
+  return labels[type] ?? type;
+}
+
+function formatEvidenceLayer(layer: string) {
+  const labels: Record<string, string> = {
+    argument: "论点层",
+    visual: "视觉层",
+    transcript: "文本层",
+  };
+
+  return labels[layer] ?? layer;
+}
+
+function formatCitationKind(kind: string) {
+  const labels: Record<string, string> = {
+    frame: "帧",
+    segment: "文本",
+    knowledge: "知识",
+  };
+
+  return labels[kind] ?? kind;
 }
 
 function statusProgress(status: AssetStatus) {

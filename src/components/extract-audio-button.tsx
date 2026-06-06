@@ -21,7 +21,7 @@ export function ExtractAudioButton({ assetId, disabledReason }: { assetId: strin
     setIsExtracting(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "Full audio extraction failed.");
+      setError(payload.error ?? "音频提取失败。");
       router.refresh();
       return;
     }
@@ -45,8 +45,8 @@ export function ExtractAudioButton({ assetId, disabledReason }: { assetId: strin
         <span aria-hidden={!isExtracting} className={isExtracting ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isExtracting ? "hidden" : "inline"}>Extract full audio</span>
-        <span className={isExtracting ? "inline" : "hidden"}>Extracting audio...</span>
+        <span className={isExtracting ? "hidden" : "inline"}>提取音频</span>
+        <span className={isExtracting ? "inline" : "hidden"}>正在提取...</span>
       </button>
       {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}

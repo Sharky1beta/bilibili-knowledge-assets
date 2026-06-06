@@ -10,7 +10,7 @@ export function DeleteAssetButton({ assetId, title }: { assetId: string; title: 
   const [error, setError] = useState<string | null>(null);
 
   async function deleteAsset() {
-    const confirmed = window.confirm(`Delete "${title}"? This removes the local asset record and extracted frames.`);
+    const confirmed = window.confirm(`确定删除“${title}”吗？这会删除本地资产记录和已抽取的帧。`);
     if (!confirmed) {
       return;
     }
@@ -26,7 +26,7 @@ export function DeleteAssetButton({ assetId, title }: { assetId: string; title: 
     setIsDeleting(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "Delete failed.");
+      setError(payload.error ?? "删除失败。");
       return;
     }
 
@@ -39,8 +39,8 @@ export function DeleteAssetButton({ assetId, title }: { assetId: string; title: 
         type="button"
         onClick={deleteAsset}
         disabled={isDeleting}
-        aria-label={`Delete ${title}`}
-        title="Delete asset"
+        aria-label={`删除 ${title}`}
+        title="删除资产"
         className="inline-grid size-8 place-items-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}

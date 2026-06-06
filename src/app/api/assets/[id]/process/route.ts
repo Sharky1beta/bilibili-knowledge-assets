@@ -12,14 +12,14 @@ export async function POST(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   const { asset } = detail;
 
   if (!asset.cid || (!asset.bvid && !asset.aid)) {
     return NextResponse.json(
-      { error: "Fetch metadata before processing media. This asset has no cid/bvid/aid yet." },
+      { error: "请先获取元数据。当前资产还没有 cid/bvid/aid，无法处理媒体。" },
       { status: 409 },
     );
   }
@@ -56,7 +56,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to process video media.";
+    const message = error instanceof Error ? error.message : "视频媒体处理失败。";
     const failedAsset = markAssetFailed(asset.id, message);
 
     return NextResponse.json({ asset: failedAsset, error: message }, { status: 500 });

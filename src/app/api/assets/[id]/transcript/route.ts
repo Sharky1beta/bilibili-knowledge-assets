@@ -12,13 +12,13 @@ export async function POST(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   const { asset } = detail;
   if (!asset.cid || (!asset.bvid && !asset.aid)) {
     return NextResponse.json(
-      { error: "Fetch metadata before extracting transcript. This asset has no cid/bvid/aid yet." },
+      { error: "请先获取元数据。当前资产还没有 cid/bvid/aid，无法抓字幕。" },
       { status: 409 },
     );
   }
@@ -30,7 +30,7 @@ export async function POST(
       return NextResponse.json(
         {
           asset,
-          error: "No official Bilibili subtitles were found. Extract full audio, then run ASR transcription.",
+          error: "没有找到 B 站官方字幕。请先提取音频，再执行音频 ASR。",
           source: "bilibili_subtitle",
         },
         { status: 404 },
@@ -48,8 +48,8 @@ export async function POST(
       source: "bilibili_subtitle",
       segmentCount: segments.length,
       note: windows.length
-        ? `Official Bilibili subtitles were filtered to key-frame windows (+/- ${transcriptWindowRadiusSec}s).`
-        : "Official Bilibili subtitle file was fetched and normalized into timestamped segments.",
+        ? `已将 B 站官方字幕过滤到关键帧前后 ${transcriptWindowRadiusSec} 秒窗口。`
+        : "已抓取 B 站官方字幕，并规范化为带时间戳片段。",
     });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
@@ -60,7 +60,7 @@ export async function POST(
       windows: windows.length,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Transcript extraction failed.";
+    const message = error instanceof Error ? error.message : "字幕提取失败。";
     const failedAsset = markAssetFailed(asset.id, message);
 
     return NextResponse.json({ asset: failedAsset, error: message }, { status: 500 });

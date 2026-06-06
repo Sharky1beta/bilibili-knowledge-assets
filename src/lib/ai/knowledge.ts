@@ -136,7 +136,7 @@ Rules:
 - Prefer visual_fact when the evidence depends on screenshot content, visible text, charts, tables, diagrams, code, or other visual-only facts.
 - Every item must cite at least one sourceSegmentId or sourceFrameId when possible.
 - Do not invent facts that are not grounded in the provided metadata, segments, or frame analyses.
-- Use concise English.
+- Use concise Simplified Chinese for every item content.
 
 Asset metadata:
 ${JSON.stringify({
@@ -163,7 +163,7 @@ function fallbackKnowledgeItems(detail: AssetDetail): KnowledgeItemInput[] {
 
   items.push({
     type: "fact",
-    content: `The video asset is titled "${asset.title}"${asset.ownerName ? ` by ${asset.ownerName}` : ""}.`,
+    content: `视频资产标题为《${asset.title}》${asset.ownerName ? `，UP 主是 ${asset.ownerName}` : ""}。`,
     sourceSegmentIds: firstSegment,
     sourceFrameIds: [],
   });
@@ -186,7 +186,7 @@ function fallbackKnowledgeItems(detail: AssetDetail): KnowledgeItemInput[] {
     const visualFact = frame.onlyInVisual[0] || frame.visibleText[0] || frame.summary;
     items.push({
       type: "visual_fact",
-      content: `${formatTime(frame.timestampSec)}: ${visualFact}`,
+      content: `${formatTime(frame.timestampSec)} 的视觉证据：${visualFact}`,
       sourceSegmentIds: [],
       sourceFrameIds: [frame.id],
     });
@@ -195,7 +195,7 @@ function fallbackKnowledgeItems(detail: AssetDetail): KnowledgeItemInput[] {
   for (const segment of segments.slice(0, 4)) {
     items.push({
       type: "timeline",
-      content: `${formatTime(segment.startSec)}-${formatTime(segment.endSec)}: ${segment.summary || summarizeSentence(segment.text)}`,
+      content: `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 的文本线索：${segment.summary || summarizeSentence(segment.text)}`,
       sourceSegmentIds: [segment.id],
       sourceFrameIds: [],
     });

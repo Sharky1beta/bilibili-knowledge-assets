@@ -189,6 +189,7 @@ For multi_video_synthesis:
 
 Rules:
 - Ground every claim in supplied knowledge items, frame analyses, or transcript segments.
+- Write all user-facing titles, summaries, facts, actions, questions, insights, and observations in Simplified Chinese. Keep JSON field names unchanged.
 - Prefer visual citations when visual evidence exists.
 - Use citation keys exactly as provided.
 - Keep output concise and demo-friendly.
@@ -328,7 +329,7 @@ function fallbackIllustratedSummary(details: AssetDetail[], prompt: string): Ill
 
   const sections = details.flatMap((detail) =>
     rankedFrames(detail).slice(0, 4).map((frame) => ({
-      heading: frame.visualType === "other" ? detail.asset.title : `${titleCase(frame.visualType)} evidence`,
+      heading: frame.visualType === "other" ? detail.asset.title : `${formatVisualTypeLabel(frame.visualType)}证据`,
       summary: frame.summary,
       imagePath: frame.imagePath,
       timestampSec: frame.timestampSec,
@@ -338,14 +339,14 @@ function fallbackIllustratedSummary(details: AssetDetail[], prompt: string): Ill
 
   return {
     mode: "illustrated_summary",
-    title: prompt ? `Illustrated summary: ${prompt}` : "Illustrated summary",
-    takeaway: facts[0]?.text || "This output reuses stored knowledge items and visual citations without reprocessing the video.",
+    title: prompt ? `图文总结：${prompt}` : "图文总结",
+    takeaway: facts[0]?.text || "本结果直接复用已保存的知识条目和视觉引用，没有重新处理视频。",
     keyFacts: facts.length ? facts : fallbackFactRows(details),
     sections,
     actionSuggestions: [
-      "Inspect the cited frames before reusing visual-only facts.",
-      "Generate Evidence Cards from the same asset to review source-level support.",
-      "Add another processed asset to compare recurring themes.",
+      "复用仅画面可见的信息前，先检查引用帧。",
+      "用同一资产生成证据卡片，核对每条结论的来源支撑。",
+      "加入另一个已处理资产，对比重复主题和差异。",
     ],
   };
 }
@@ -353,7 +354,7 @@ function fallbackIllustratedSummary(details: AssetDetail[], prompt: string): Ill
 function fallbackEvidenceCards(details: AssetDetail[], prompt: string): EvidenceCardsContent {
   return {
     mode: "evidence_cards",
-    title: prompt ? `Evidence cards: ${prompt}` : "Evidence cards",
+    title: prompt ? `证据卡片：${prompt}` : "证据卡片",
     cards: details.flatMap((detail) => {
       const visualItems = detail.knowledgeItems.filter((item) => item.type === "visual_fact");
       const sourceItems = visualItems.length ? visualItems : detail.knowledgeItems;
@@ -384,14 +385,14 @@ function fallbackMultiVideoSynthesis(details: AssetDetail[], prompt: string): Mu
 
   return {
     mode: "multi_video_synthesis",
-    title: prompt ? `Multi-video synthesis: ${prompt}` : "Multi-video synthesis",
+    title: prompt ? `多视频综合：${prompt}` : "多视频综合",
     sourceCoverage: details.map(sourceCoverageForDetail),
     commonThemes: [
-      "The selected assets are synthesized from stored metadata, structured knowledge, transcript segments, and visual frame evidence.",
-      "Frame citations preserve visual-only evidence with timestamps, while segment citations preserve spoken or subtitle evidence.",
+      "所选资产基于已保存的元数据、结构化知识、字幕/转写片段和视觉帧证据进行综合。",
+      "帧引用保留带时间戳的视觉证据，文本引用保留口播或字幕证据。",
       details.length > 1
-        ? "The comparison separates shared themes from source-specific visual or transcript evidence."
-        : "Add more assets to demonstrate stronger cross-video synthesis.",
+        ? "对比结果会区分共同主题，以及每个来源独有的视觉或文本证据。"
+        : "加入更多资产后，可以展示更完整的跨视频综合。",
     ].filter(Boolean),
     comparisonMatrix: comparisonDimensions,
     layeredEvidence,
@@ -399,7 +400,7 @@ function fallbackMultiVideoSynthesis(details: AssetDetail[], prompt: string): Mu
       assetTitle: detail.asset.title,
       points: [
         ...relevantKnowledgeItems(detail, prompt, ["claim", "fact", "term", "timeline", "action_item"], 3).map((item) => item.content),
-        ...relevantFrames(detail, prompt, 2).map((frame) => `Visual evidence at ${formatTime(frame.timestampSec)}: ${frame.onlyInVisual[0] || frame.summary}`),
+        ...relevantFrames(detail, prompt, 2).map((frame) => `${formatTime(frame.timestampSec)} 的视觉证据：${frame.onlyInVisual[0] || frame.summary}`),
       ].slice(0, 5),
       citations: detail.knowledgeItems
         .slice(0, 4)
@@ -412,12 +413,12 @@ function fallbackMultiVideoSynthesis(details: AssetDetail[], prompt: string): Mu
         const claim = relevantKnowledgeItems(detail, prompt, ["claim", "fact", "timeline"], 1)[0]?.content;
         const visual = relevantFrames(detail, prompt, 1)[0];
         const transcript = relevantSegments(detail, prompt, 1)[0];
-        return `${detail.asset.title}: ${claim || "no structured claim yet"}; visual layer: ${visual?.onlyInVisual[0] || visual?.summary || "no visual evidence yet"}; transcript layer: ${transcript?.summary || summarizeText(transcript?.text ?? "") || "no transcript evidence yet"}.`;
+        return `${detail.asset.title}：${claim || "还没有结构化论点"}；视觉层：${visual?.onlyInVisual[0] || visual?.summary || "还没有视觉证据"}；文本层：${transcript?.summary || summarizeText(transcript?.text ?? "") || "还没有文本证据"}。`;
       })
       .join(" "),
     openQuestions: [
-      "Which cross-video difference is best supported by visual-only evidence?",
-      "Do any transcript-only claims need a matching frame before final submission?",
+      "哪些跨视频差异最能被仅画面可见的证据支撑？",
+      "是否有仅来自文本的结论需要补充对应画面证据？",
     ],
   };
 }
@@ -627,34 +628,34 @@ function sourceCoverageForDetail(detail: AssetDetail) {
 function buildFallbackComparison(details: AssetDetail[], prompt: string): MultiVideoSynthesisContent["comparisonMatrix"] {
   const dimensions = [
     {
-      dimension: "Argument layer",
+      dimension: "论点层",
       observations: details.map((detail) => {
         const item = relevantKnowledgeItems(detail, prompt, ["claim", "fact", "term", "timeline", "action_item"], 1)[0];
         return {
           assetTitle: detail.asset.title,
-          point: item?.content || "No structured argument item has been built yet.",
+          point: item?.content || "还没有构建结构化论点。",
           citations: item ? citationsForItem(detail, item.sourceFrameIds, item.sourceSegmentIds) : ensureCitations([detail], []),
         };
       }),
     },
     {
-      dimension: "Visual evidence layer",
+      dimension: "视觉证据层",
       observations: details.map((detail) => {
         const frame = relevantFrames(detail, prompt, 1)[0];
         return {
           assetTitle: detail.asset.title,
-          point: frame ? `${formatTime(frame.timestampSec)}: ${frame.onlyInVisual[0] || frame.summary}` : "No analyzed visual frame is available.",
+          point: frame ? `${formatTime(frame.timestampSec)}：${frame.onlyInVisual[0] || frame.summary}` : "还没有可用的视觉分析帧。",
           citations: frame ? [frameCitation(detail, frame.id)].filter(Boolean) as Citation[] : [],
         };
       }),
     },
     {
-      dimension: "Transcript layer",
+      dimension: "文本层",
       observations: details.map((detail) => {
         const segment = relevantSegments(detail, prompt, 1)[0];
         return {
           assetTitle: detail.asset.title,
-          point: segment ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)}: ${segment.summary || summarizeText(segment.text)}` : "No transcript segment is available.",
+          point: segment ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)}：${segment.summary || summarizeText(segment.text)}` : "还没有可用的字幕/转写片段。",
           citations: segment ? [segmentCitation(detail, segment.id)].filter(Boolean) as Citation[] : [],
         };
       }),
@@ -679,17 +680,17 @@ function buildFallbackLayeredEvidence(details: AssetDetail[], prompt: string): M
   const rows: MultiVideoSynthesisContent["layeredEvidence"] = [
     {
       layer: "argument",
-      insight: "Structured knowledge items provide the reusable claim and timeline layer for comparison.",
+      insight: "结构化知识条目提供可复用的论点层和时间线层，用于跨视频对比。",
       citations: argumentCitations.slice(0, 8),
     },
     {
       layer: "visual",
-      insight: "High-density frames and visual-only facts preserve evidence that may not appear in speech or subtitles.",
+      insight: "高信息密度帧和仅画面可见事实保留了口播或字幕中不一定出现的证据。",
       citations: visualCitations.slice(0, 8),
     },
     {
       layer: "transcript",
-      insight: "Timestamped transcript segments add spoken or subtitle context around the visual evidence.",
+      insight: "带时间戳的字幕/转写片段为视觉证据补充口播或字幕上下文。",
       citations: transcriptCitations.slice(0, 8),
     },
   ];
@@ -700,7 +701,7 @@ function buildFallbackLayeredEvidence(details: AssetDetail[], prompt: string): M
 function normalizeSourceCoverage(value: unknown, details: AssetDetail[]) {
   const fallback = details.map(sourceCoverageForDetail);
   const rows = arrayOfRecords(value).map((row) => ({
-    assetTitle: stringOrFallback(row.assetTitle, "Source asset"),
+    assetTitle: stringOrFallback(row.assetTitle, "来源资产"),
     claimCount: numberOrZero(row.claimCount),
     visualFactCount: numberOrZero(row.visualFactCount),
     transcriptSegmentCount: numberOrZero(row.transcriptSegmentCount),
@@ -716,11 +717,11 @@ function normalizeComparisonMatrix(
   fallback: MultiVideoSynthesisContent["comparisonMatrix"],
 ) {
   const rows = arrayOfRecords(value).map((row) => ({
-    dimension: stringOrFallback(row.dimension, "Comparison dimension"),
+    dimension: stringOrFallback(row.dimension, "对比维度"),
     observations: arrayOfRecords(row.observations)
       .map((observation, index) => ({
-        assetTitle: stringOrFallback(observation.assetTitle, details[index]?.asset.title ?? "Source asset"),
-        point: stringOrFallback(observation.point, "No observation returned."),
+        assetTitle: stringOrFallback(observation.assetTitle, details[index]?.asset.title ?? "来源资产"),
+        point: stringOrFallback(observation.point, "没有返回观察结果。"),
         citations: ensureCitations(details, citationsForKeys(details, stringArray(observation.citationKeys)), index),
       }))
       .slice(0, 6),
@@ -736,7 +737,7 @@ function normalizeLayeredEvidence(
 ) {
   const rows = arrayOfRecords(value).map((row, index) => ({
     layer: normalizeEvidenceLayer(row.layer),
-    insight: stringOrFallback(row.insight, "Layered evidence insight."),
+    insight: stringOrFallback(row.insight, "分层证据洞察。"),
     citations: ensureCitations(details, citationsForKeys(details, stringArray(row.citationKeys)), index),
   })).filter((row) => row.insight || row.citations.length);
 
@@ -882,8 +883,19 @@ function normalizeEvidenceType(value: unknown): EvidenceCardsContent["cards"][nu
   return value === "visual-only" || value === "transcript-only" || value === "mixed" ? value : "visual-only";
 }
 
-function titleCase(value: string) {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+function formatVisualTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    slide: "幻灯片",
+    chart: "图表",
+    code: "代码",
+    whiteboard: "白板",
+    table: "表格",
+    talking_head: "人物口播",
+    diagram: "示意图",
+    other: "视觉",
+  };
+
+  return labels[value] ?? "视觉";
 }
 
 function promptTerms(prompt: string) {
@@ -922,23 +934,23 @@ function assetReadinessWarning(details: AssetDetail[]) {
   }
 
   const statuses = Array.from(new Set(incomplete.map((detail) => detail.asset.status))).join("/");
-  return `${incomplete.length} selected asset${incomplete.length > 1 ? "s are" : " is"} still at ${statuses} stage; run Analyze vision and Build asset for richer generated outputs.`;
+  return `${incomplete.length} 个已选资产仍处于 ${statuses} 阶段；建议先完成“视觉分析”和“构建资产”，生成结果会更完整。`;
 }
 
 function normalizeGenerationWarning(reason: string) {
   const compact = reason.trim().toLowerCase();
 
   if (compact === "fetch failed" || compact.includes("fetch failed") || compact.includes("network")) {
-    return "Gemini output generation was unavailable, so this preview was rendered from saved local frames and knowledge items.";
+    return "Gemini 生成暂时不可用，因此当前预览由本地已保存的关键帧和知识条目生成。";
   }
 
   if (compact.includes("api key")) {
-    return "Gemini is not configured, so this preview was rendered from saved local frames and knowledge items.";
+    return "还没有配置 Gemini，因此当前预览由本地已保存的关键帧和知识条目生成。";
   }
 
   if (compact.includes("quota") || compact.includes("429")) {
-    return "Gemini quota/rate limit was reached, so this preview was rendered from saved local frames and knowledge items.";
+    return "Gemini 额度或频率限制已触发，因此当前预览由本地已保存的关键帧和知识条目生成。";
   }
 
-  return "Gemini output generation fell back to saved local frames and knowledge items.";
+  return "Gemini 生成失败，已降级为使用本地已保存的关键帧和知识条目生成预览。";
 }

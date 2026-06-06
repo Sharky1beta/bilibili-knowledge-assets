@@ -4,14 +4,14 @@ import { Database, FileText, Layers3 } from "lucide-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Knowledge Clip Studio",
-  description: "Reusable knowledge assets from long Bilibili videos.",
+  title: "视频知识资产工作台",
+  description: "从 B 站长视频构建可复用知识资产。",
 };
 
 const navItems = [
-  { href: "/", label: "Assets", icon: Database },
-  { href: "/generate", label: "Generate", icon: FileText },
-  { href: "/docs", label: "Architecture", icon: Layers3 },
+  { href: "/", label: "资产", icon: Database },
+  { href: "/generate", label: "生成", icon: FileText },
+  { href: "/docs", label: "架构", icon: Layers3 },
 ];
 
 export default function RootLayout({
@@ -20,13 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" translate="no" suppressHydrationWarning>
+    <html lang="zh-CN" translate="no" suppressHydrationWarning>
       <body className="notranslate">
         <div className="shell-grid">
           <aside className="border-r border-[var(--line)] bg-white px-5 py-6">
             <Link href="/" className="block">
-              <div className="text-lg font-semibold tracking-tight">Knowledge Clip</div>
-              <div className="mt-1 text-sm text-[var(--muted)]">Reusable video intelligence</div>
+              <div className="text-lg font-semibold tracking-tight">视频知识资产</div>
+              <div className="mt-1 text-sm text-[var(--muted)]">B 站长视频复用工作台</div>
             </Link>
             <nav className="mt-8 grid gap-1">
               {navItems.map((item) => {

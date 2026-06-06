@@ -16,7 +16,7 @@ export async function POST(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   const { asset } = detail;
@@ -25,14 +25,14 @@ export async function POST(
 
   if (!exists) {
     return NextResponse.json(
-      { error: "Extract full audio before running ASR transcription." },
+      { error: "请先提取完整音频，再执行 ASR 转写。" },
       { status: 409 },
     );
   }
 
   if (!detail.frames.length) {
     return NextResponse.json(
-      { error: "Extract key frames before ASR. This demo only keeps transcript windows around selected frames." },
+      { error: "请先抽取关键帧。这个 Demo 只保留关键帧附近的转写窗口。" },
       { status: 409 },
     );
   }
@@ -68,11 +68,11 @@ export async function POST(
         });
         transcriptSegments.push(...chunkSegments);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "ASR chunk failed.";
+        const message = error instanceof Error ? error.message : "ASR 音频窗口转写失败。";
         transcriptSegments.push({
           startSec: chunk.startSec,
           endSec: chunk.startSec + chunk.durationSec,
-          text: "[ASR unavailable for this audio chunk]",
+          text: "[当前音频窗口无法 ASR]",
           summary: message,
         });
       }
@@ -83,7 +83,7 @@ export async function POST(
       source: "gemini_audio_full",
       segmentCount: segments.length,
       chunks: chunks.length,
-      note: `Generated only from saved audio windows around key frames (+/- ${transcriptWindowRadiusSec}s), not from the full video timeline.`,
+      note: `仅根据关键帧前后 ${transcriptWindowRadiusSec} 秒的已保存音频窗口生成，不保存完整视频时间线转写。`,
     });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
@@ -97,7 +97,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "ASR transcription failed.";
+    const message = error instanceof Error ? error.message : "ASR 转写失败。";
 
     return NextResponse.json({ asset, error: message }, { status: 500 });
   }

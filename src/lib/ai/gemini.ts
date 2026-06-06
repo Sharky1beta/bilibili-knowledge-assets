@@ -116,6 +116,7 @@ Scoring guidance:
 
 Prefer preserving frames with charts, tables, code, whiteboard derivations, formulas, visible numbers, diagrams, or slide conclusions.
 Use the candidate signal as context, but make the final decision from visible evidence in the image.
+Write summary, retentionReason, and onlyInVisual in Simplified Chinese. Keep visualType as one of the English enum values.
 `.trim();
 }
 
@@ -147,11 +148,11 @@ function normalizeAnalysis(raw: Record<string, unknown>): FrameVisualAnalysis {
   const informationDensity = clampNumber(raw.informationDensity);
 
   return {
-    summary: stringOrFallback(raw.summary, "Visual analysis did not include a summary."),
+    summary: stringOrFallback(raw.summary, "视觉分析没有返回摘要。"),
     visibleText: stringArray(raw.visibleText),
     visualType,
     informationDensity,
-    retentionReason: stringOrFallback(raw.retentionReason, "Visual analysis did not include a retention reason."),
+    retentionReason: stringOrFallback(raw.retentionReason, "视觉分析没有返回保留理由。"),
     onlyInVisual: stringArray(raw.onlyInVisual),
   };
 }

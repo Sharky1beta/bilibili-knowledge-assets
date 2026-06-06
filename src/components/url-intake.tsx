@@ -25,7 +25,7 @@ export function UrlIntake() {
     setIsSubmitting(false);
 
     if (!response.ok || !payload.assetId) {
-      setError(payload.error ?? "Could not create asset.");
+      setError(payload.error ?? "创建资产失败。");
       return;
     }
 
@@ -36,7 +36,7 @@ export function UrlIntake() {
   return (
     <form onSubmit={submit} className="rounded-lg border border-[var(--line)] bg-white p-4 shadow-sm">
       <label htmlFor="url" className="text-sm font-semibold">
-        Bilibili video URL
+        B 站视频 URL
       </label>
       <div className="mt-3 flex gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--line)] bg-white px-3">
@@ -55,7 +55,7 @@ export function UrlIntake() {
           className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:bg-[#195f48] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
-          Create asset
+          创建资产
         </button>
       </div>
       {error ? <p className="mt-3 text-sm text-[var(--danger)]">{error}</p> : null}

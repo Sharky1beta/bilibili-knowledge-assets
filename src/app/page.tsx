@@ -8,12 +8,12 @@ import { createDemoAsset, listAssets } from "@/lib/db/assets";
 export const dynamic = "force-dynamic";
 
 const steps = [
-  "Metadata",
-  "Stream",
-  "Frames",
-  "Vision JSON",
-  "Memory",
-  "Outputs",
+  "元数据",
+  "视频流",
+  "关键帧",
+  "视觉理解",
+  "知识资产",
+  "生成输出",
 ];
 
 export default function HomePage() {
@@ -24,16 +24,16 @@ export default function HomePage() {
     <div className="px-6 py-6 lg:px-10">
       <header className="flex flex-col gap-4 border-b border-[var(--line)] pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Video assets</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">视频资产</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Create reusable knowledge assets from Bilibili long videos, then generate cited outputs from saved visual and text evidence.
+            从 B 站长视频创建可复用知识资产，再基于已保存的视觉证据和文本证据生成带引用的结果。
           </p>
         </div>
         <Link
           href="/generate"
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--line)] bg-white px-4 text-sm font-semibold"
         >
-          Generate
+          去生成
           <ArrowRight size={16} />
         </Link>
       </header>
@@ -44,8 +44,8 @@ export default function HomePage() {
 
           <div className="rounded-lg border border-[var(--line)] bg-white p-5">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-base font-semibold">Reusable assets</h2>
-              <span className="text-sm text-[var(--muted)]">{assets.length} total</span>
+              <h2 className="text-base font-semibold">可复用资产</h2>
+              <span className="text-sm text-[var(--muted)]">共 {assets.length} 个</span>
             </div>
             <div className="mt-4 grid gap-3">
               {assets.map((asset) => (
@@ -62,15 +62,15 @@ export default function HomePage() {
                       <StatusPill status={asset.status} />
                     </div>
                     <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
-                      {asset.description ?? "Waiting for metadata and visual evidence extraction."}
+                      {asset.description ?? "等待抓取元数据和视觉证据。"}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
-                      <span>{asset.aid ? `av${asset.aid}` : "aid pending"}</span>
-                      <span>{asset.bvid ?? "BV pending"}</span>
-                      <span>{asset.cid ? `cid ${asset.cid}` : "cid pending"}</span>
-                      <span>{asset.ownerName ?? "Owner pending"}</span>
-                      <span>{asset.duration ? `${Math.round(asset.duration / 60)} min` : "Duration pending"}</span>
-                      <span>{asset.pageCount ? `${asset.pageCount} page${asset.pageCount > 1 ? "s" : ""}` : "pages pending"}</span>
+                      <span>{asset.aid ? `av${asset.aid}` : "aid 待获取"}</span>
+                      <span>{asset.bvid ?? "BV 待获取"}</span>
+                      <span>{asset.cid ? `cid ${asset.cid}` : "cid 待获取"}</span>
+                      <span>{asset.ownerName ?? "UP 主待获取"}</span>
+                      <span>{asset.duration ? `${Math.round(asset.duration / 60)} 分钟` : "时长待获取"}</span>
+                      <span>{asset.pageCount ? `${asset.pageCount} P` : "分 P 待获取"}</span>
                     </div>
                     {asset.errorMessage ? (
                       <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">{asset.errorMessage}</p>
@@ -81,7 +81,7 @@ export default function HomePage() {
                       href={`/assets/${asset.id}`}
                       className="group inline-flex items-center text-sm font-semibold text-[var(--accent)]"
                     >
-                      Open
+                      打开
                       <ArrowRight size={16} className="ml-2 transition group-hover:translate-x-0.5" />
                     </Link>
                   </div>
@@ -93,7 +93,7 @@ export default function HomePage() {
 
         <aside className="grid content-start gap-4">
           <div className="rounded-lg border border-[var(--line)] bg-white p-5">
-            <h2 className="text-base font-semibold">Pipeline</h2>
+            <h2 className="text-base font-semibold">处理流程</h2>
             <div className="mt-4 grid gap-3">
               {steps.map((step, index) => (
                 <div key={step} className="flex items-center gap-3 text-sm">
@@ -106,19 +106,19 @@ export default function HomePage() {
             </div>
           </div>
           <div className="rounded-lg border border-[var(--line)] bg-[#14211c] p-5 text-white">
-            <h2 className="text-base font-semibold">Demo proof points</h2>
+            <h2 className="text-base font-semibold">Demo 证明点</h2>
             <div className="mt-4 grid gap-4 text-sm text-[#c5d8d0]">
               <div className="flex gap-3">
                 <ImageIcon size={18} className="mt-0.5 text-emerald-300" />
-                Information-driven key frames with timestamped visual notes.
+                信息驱动选帧，保留时间戳和视觉说明。
               </div>
               <div className="flex gap-3">
                 <Clock3 size={18} className="mt-0.5 text-emerald-300" />
-                Same saved asset can generate multiple outputs without reprocessing.
+                同一资产可生成多种输出，不重新处理视频。
               </div>
               <div className="flex gap-3">
                 <MessageSquareText size={18} className="mt-0.5 text-emerald-300" />
-                Multi-asset synthesis is available from the generation workbench.
+                生成工作台支持多资产综合分析。
               </div>
             </div>
           </div>

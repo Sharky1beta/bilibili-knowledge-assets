@@ -21,7 +21,7 @@ export function BuildKnowledgeButton({ assetId, disabledReason }: { assetId: str
     setIsBuilding(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "Knowledge asset build failed.");
+      setError(payload.error ?? "知识资产构建失败。");
       router.refresh();
       return;
     }
@@ -45,8 +45,8 @@ export function BuildKnowledgeButton({ assetId, disabledReason }: { assetId: str
         <span aria-hidden={!isBuilding} className={isBuilding ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isBuilding ? "hidden" : "inline"}>Build asset</span>
-        <span className={isBuilding ? "inline" : "hidden"}>Building asset...</span>
+        <span className={isBuilding ? "hidden" : "inline"}>构建资产</span>
+        <span className={isBuilding ? "inline" : "hidden"}>正在构建...</span>
       </button>
       {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}

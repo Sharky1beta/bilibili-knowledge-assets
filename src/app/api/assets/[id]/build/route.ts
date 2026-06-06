@@ -10,12 +10,12 @@ export async function POST(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   if (!detail.frames.length && !detail.segments.length) {
     return NextResponse.json(
-      { error: "Extract frames or transcript segments before building the knowledge asset." },
+      { error: "请先抽取关键帧或字幕/转写片段，再构建知识资产。" },
       { status: 409 },
     );
   }

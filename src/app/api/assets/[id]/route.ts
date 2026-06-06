@@ -11,7 +11,7 @@ export async function GET(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   return NextResponse.json(detail);
@@ -25,7 +25,7 @@ export async function DELETE(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   const deleted = deleteAsset(id);
@@ -39,7 +39,7 @@ async function removeAssetPublicFiles(assetId: string) {
   const assetDir = path.resolve(assetsRoot, assetId);
 
   if (!assetDir.startsWith(`${assetsRoot}${path.sep}`)) {
-    throw new Error("Refusing to remove files outside public assets directory.");
+    throw new Error("拒绝删除 public/assets 目录之外的文件。");
   }
 
   await fs.rm(assetDir, { recursive: true, force: true });

@@ -11,16 +11,16 @@ export async function POST(
   const detail = getAssetDetail(id);
 
   if (!detail) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "资产不存在。" }, { status: 404 });
   }
 
   if (!detail.frames.length) {
-    return NextResponse.json({ error: "Extract candidate frames before running visual analysis." }, { status: 409 });
+    return NextResponse.json({ error: "请先抽取候选关键帧，再进行视觉分析。" }, { status: 409 });
   }
 
   if (!hasGeminiApiKey()) {
     return NextResponse.json(
-      { error: "GEMINI_API_KEY is not configured. Add it to .env.local before visual analysis." },
+      { error: "还没有配置 GEMINI_API_KEY。请先写入 .env.local，再进行视觉分析。" },
       { status: 409 },
     );
   }
@@ -34,7 +34,7 @@ export async function POST(
         const analysis = await analyzeFrameWithGemini(frame);
         analyzedFrames.push(updateFrameAnalysis(frame.id, analysis));
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Frame visual analysis failed.";
+        const message = error instanceof Error ? error.message : "单帧视觉分析失败。";
         warnings.push({ frameId: frame.id, timestampSec: frame.timestampSec, error: message });
         analyzedFrames.push(updateFrameAnalysis(frame.id, fallbackAnalysis(message)));
       }
@@ -43,7 +43,7 @@ export async function POST(
     const asset =
       analyzedFrames.length > 0
         ? updateAssetStatus(detail.asset.id, "visual_understood")
-        : markAssetFailed(detail.asset.id, "No frames could be analyzed.");
+        : markAssetFailed(detail.asset.id, "没有帧可以完成分析。");
 
     return NextResponse.json({
       asset,
@@ -54,7 +54,7 @@ export async function POST(
     const message =
       error instanceof GeminiVisionError || error instanceof Error
         ? error.message
-        : "Visual analysis failed.";
+        : "视觉分析失败。";
     const asset = markAssetFailed(detail.asset.id, message);
 
     return NextResponse.json({ asset, error: message }, { status: 500 });
@@ -63,11 +63,11 @@ export async function POST(
 
 function fallbackAnalysis(message: string): FrameVisualAnalysis {
   return {
-    summary: "Visual analysis did not return usable content for this frame.",
+    summary: "视觉分析没有为这一帧返回可用内容。",
     visibleText: [],
     visualType: "other",
     informationDensity: 0,
-    retentionReason: `Skipped by visual analyzer: ${message}`,
+    retentionReason: `视觉分析跳过：${message}`,
     onlyInVisual: [],
   };
 }

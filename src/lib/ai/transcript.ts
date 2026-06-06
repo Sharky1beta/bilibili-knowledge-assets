@@ -107,6 +107,7 @@ Rules:
 - Produce timestamped segments in chronological order.
 - Use timestamps relative to this chunk. The system will add the original-video offset.
 - Use the spoken language you hear. Do not translate unless the audio itself switches language.
+- Write summary in Simplified Chinese.
 - Keep segments between 5 and 30 seconds when possible.
 - If the audio is music or mostly non-speech, describe it as non-speech/music with timestamps.
 - Do not invent named facts that are not audible.

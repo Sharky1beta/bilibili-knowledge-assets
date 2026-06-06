@@ -21,7 +21,7 @@ export function TranscribeAudioButton({ assetId, disabledReason }: { assetId: st
     setIsTranscribing(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "ASR transcription failed.");
+      setError(payload.error ?? "ASR 转写失败。");
       router.refresh();
       return;
     }
@@ -45,8 +45,8 @@ export function TranscribeAudioButton({ assetId, disabledReason }: { assetId: st
         <span aria-hidden={!isTranscribing} className={isTranscribing ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isTranscribing ? "hidden" : "inline"}>ASR from full audio</span>
-        <span className={isTranscribing ? "inline" : "hidden"}>Transcribing audio...</span>
+        <span className={isTranscribing ? "hidden" : "inline"}>音频 ASR</span>
+        <span className={isTranscribing ? "inline" : "hidden"}>正在转写...</span>
       </button>
       {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}

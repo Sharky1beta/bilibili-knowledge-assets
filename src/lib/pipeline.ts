@@ -33,7 +33,7 @@ export function actionDisabledReason(options: {
   const { asset, action, hasFrames, hasAudio, hasKnowledge } = options;
 
   if (!asset.cid || (!asset.bvid && !asset.aid)) {
-    return "Metadata is missing. Create the asset from a valid public Bilibili URL before running this step.";
+    return "缺少元数据。请先用有效的公开 B 站 URL 创建资产。";
   }
 
   if (action === "process") {
@@ -46,36 +46,36 @@ export function actionDisabledReason(options: {
 
   if (action === "subtitles") {
     if (!hasFrames) {
-      return "Extract key frames first. The demo keeps only subtitle segments around selected frames.";
+      return "请先抽取关键帧。本 Demo 只保留关键帧附近的字幕片段。";
     }
     return null;
   }
 
   if (action === "vision" && !hasFrames) {
-    return "Extract frames first so Gemini vision has screenshots to analyze.";
+    return "请先抽取关键帧，视觉模型需要截图才能分析。";
   }
 
   if (asset.status === "failed" && (action === "vision" || action === "build")) {
-    return "Recover the failed prerequisite first, then retry this step.";
+    return "请先恢复失败的前置步骤，再重试这个操作。";
   }
 
   if (action === "asr" && !hasAudio) {
-    return "Extract full audio first; ASR works from the saved audio-full.mp3 artifact.";
+    return "请先提取音频；ASR 会从已保存的 audio-full.mp3 中切窗口。";
   }
 
   if (action === "asr" && !hasFrames) {
-    return "Extract key frames first. ASR only transcribes audio windows around selected frames.";
+    return "请先抽取关键帧。ASR 只转写关键帧附近的音频窗口。";
   }
 
   if (action === "build") {
     if (!hasFrames) {
-      return "Extract frames first so the asset has visual evidence.";
+      return "请先抽取关键帧，让资产具备视觉证据。";
     }
     if (statusRank(asset.status) < statusRank("visual_understood")) {
-      return "Analyze vision first so the asset includes frame summaries, visible text, and visual-only facts.";
+      return "请先做视觉分析，生成帧摘要、可见文字和 visual-only facts。";
     }
     if (hasKnowledge && (asset.status === "asset_built" || asset.status === "ready")) {
-      return "This asset is already built. Rebuild only if you changed frames, subtitles, or transcript evidence.";
+      return "这个资产已经构建完成。只有在重抽帧、更新字幕或转写后才需要重建。";
     }
   }
 
@@ -93,56 +93,56 @@ export function getNextPipelineStep(options: {
 
   if (asset.status === "failed") {
     return {
-      title: "Recover failed asset",
-      body: asset.errorMessage || "Inspect the error, then create the asset again or retry the missing prerequisite.",
+      title: "恢复失败资产",
+      body: asset.errorMessage || "先查看错误原因，再重试缺失的前置步骤，必要时重新创建资产。",
     };
   }
 
   if (!asset.cid || (!asset.bvid && !asset.aid)) {
     return {
-      title: "Fetch metadata",
-      body: "Start from a public Bilibili URL so the asset can store aid, bvid, cid, duration, owner, and tags.",
+      title: "获取元数据",
+      body: "请从公开 B 站 URL 创建资产，系统会保存 aid、bvid、cid、时长、UP 主和标签。",
     };
   }
 
   if (!hasFrames) {
     return {
-      title: "Next: Extract information-driven frames",
-      body: "Run scene-change and danmaku-hotspot candidate extraction before visual analysis.",
+      title: "下一步：抽取信息驱动关键帧",
+      body: "先用场景变化、弹幕峰值和少量兜底点找候选帧，再做视觉分析。",
     };
   }
 
   if (statusRank(asset.status) < statusRank("visual_understood")) {
     return {
-      title: "Next: Analyze vision",
-      body: "Ask Gemini vision to score frame information density, visible text, and visual-only facts.",
+      title: "下一步：视觉分析",
+      body: "让 Gemini 判断每张帧的信息密度、可见文字和只存在于画面中的事实。",
     };
   }
 
   if (!hasAudio) {
     return {
-      title: "Optional: Extract full audio",
-      body: "Save audio-full.mp3 before ASR. Official subtitles can be fetched without this step.",
+      title: "可选：提取音频",
+      body: "如果没有官方字幕，就需要先保存 audio-full.mp3，后续 ASR 会从关键帧附近切音频窗口。",
     };
   }
 
   if (!hasTranscript) {
     return {
-      title: "Next: Add transcript layer",
-      body: "Try official Bilibili subtitles first. If none exist, run ASR from the saved full audio.",
+      title: "下一步：补充字幕/转写层",
+      body: "优先抓 B 站官方字幕；如果没有字幕，再对关键帧附近的音频窗口跑 ASR。",
     };
   }
 
   if (!hasKnowledge || statusRank(asset.status) < statusRank("asset_built")) {
     return {
-      title: "Next: Build reusable asset",
-      body: "Merge metadata, visual facts, transcript segments, and citations into structured knowledge items.",
+      title: "下一步：构建可复用资产",
+      body: "把元数据、视觉事实、字幕片段和引用合并成结构化知识条目。",
     };
   }
 
   return {
-    title: "Ready for generation",
-    body: "Use Generate to reuse this asset for summaries, evidence cards, or multi-video synthesis without reprocessing.",
+    title: "可以生成了",
+    body: "去生成页复用这个资产，生成图文总结、证据卡片或多视频综合，不需要重新处理视频。",
   };
 }
 
@@ -150,19 +150,19 @@ export function recoveryAdvice(errorMessage: string | null) {
   const message = (errorMessage ?? "").toLowerCase();
 
   if (message.includes("gemini") || message.includes("api key")) {
-    return "Check .env.local for GEMINI_API_KEY, then restart the dev server and retry visual analysis or generation.";
+    return "请检查 .env.local 里的 GEMINI_API_KEY，重启开发服务器后再试。";
   }
 
   if (message.includes("ffmpeg")) {
-    return "Install ffmpeg and make sure it is available on PATH, then retry frame or audio extraction.";
+    return "请安装 ffmpeg，并确认它在 PATH 中可用，然后重试抽帧或音频提取。";
   }
 
   if (message.includes("playurl") || message.includes("stream") || message.includes("region")) {
-    return "Confirm the video is public, reachable in this region, and not blocked by Bilibili anti-hotlinking.";
+    return "请确认视频是公开可访问的，当前地区可播放，并且没有被 B 站防盗链限制。";
   }
 
   if (message.includes("metadata") || message.includes("bvid") || message.includes("cid")) {
-    return "Create the asset again from a valid Bilibili BV/av URL so metadata can populate cid and source identity.";
+    return "请用有效的 B 站 BV/av URL 重新创建资产，让系统获取 cid 和来源身份。";
   }
 
   return null;

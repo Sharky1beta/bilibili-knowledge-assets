@@ -172,7 +172,7 @@ export function createAsset(url: string): Asset {
   const now = new Date().toISOString();
   const id = `asset_${randomUUID()}`;
   const bvid = extractBvid(url);
-  const title = bvid ? `Pending Bilibili asset ${bvid}` : "Pending Bilibili asset";
+  const title = bvid ? `待处理 B 站资产 ${bvid}` : "待处理 B 站资产";
 
   getDb()
     .prepare(

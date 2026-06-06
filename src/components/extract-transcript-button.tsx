@@ -21,7 +21,7 @@ export function ExtractTranscriptButton({ assetId, disabledReason }: { assetId: 
     setIsExtracting(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "Transcript extraction failed.");
+      setError(payload.error ?? "字幕提取失败。");
       router.refresh();
       return;
     }
@@ -45,8 +45,8 @@ export function ExtractTranscriptButton({ assetId, disabledReason }: { assetId: 
         <span aria-hidden={!isExtracting} className={isExtracting ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isExtracting ? "hidden" : "inline"}>Fetch official subtitles</span>
-        <span className={isExtracting ? "inline" : "hidden"}>Fetching subtitles...</span>
+        <span className={isExtracting ? "hidden" : "inline"}>抓官方字幕</span>
+        <span className={isExtracting ? "inline" : "hidden"}>正在抓取...</span>
       </button>
       {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}

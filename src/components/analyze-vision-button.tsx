@@ -21,7 +21,7 @@ export function AnalyzeVisionButton({ assetId, disabledReason }: { assetId: stri
     setIsAnalyzing(false);
 
     if (!response.ok) {
-      setError(payload.error ?? "Visual analysis failed.");
+      setError(payload.error ?? "视觉分析失败。");
       router.refresh();
       return;
     }
@@ -45,8 +45,8 @@ export function AnalyzeVisionButton({ assetId, disabledReason }: { assetId: stri
         <span aria-hidden={!isAnalyzing} className={isAnalyzing ? "inline-flex" : "hidden"}>
           <Loader2 size={16} className="animate-spin" />
         </span>
-        <span className={isAnalyzing ? "hidden" : "inline"}>Analyze vision</span>
-        <span className={isAnalyzing ? "inline" : "hidden"}>Analyzing vision...</span>
+        <span className={isAnalyzing ? "hidden" : "inline"}>视觉分析</span>
+        <span className={isAnalyzing ? "inline" : "hidden"}>正在分析...</span>
       </button>
       {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
