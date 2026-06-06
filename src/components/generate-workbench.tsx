@@ -198,6 +198,19 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
       <div>
         <h3 className="text-2xl font-semibold tracking-tight">{content.title}</h3>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{content.synthesis}</p>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {content.sourceCoverage.map((item) => (
+            <div key={item.assetTitle} className="rounded-lg border border-[var(--line)] p-3">
+              <h4 className="truncate text-sm font-semibold">{item.assetTitle}</h4>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--muted)]">
+                <span>Claims {item.claimCount}</span>
+                <span>Visual {item.visualFactCount}</span>
+                <span>Transcript {item.transcriptSegmentCount}</span>
+                <span>Frames {item.frameCount}</span>
+              </div>
+            </div>
+          ))}
+        </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-[var(--line)] p-4">
             <h4 className="text-sm font-semibold">Common themes</h4>
@@ -215,6 +228,35 @@ function OutputPreview({ content }: { content: GeneratedContent }) {
               ))}
             </ul>
           </div>
+        </div>
+        <div className="mt-5 grid gap-4">
+          <h4 className="text-sm font-semibold">Layered evidence</h4>
+          <div className="grid gap-3 md:grid-cols-3">
+            {content.layeredEvidence.map((item) => (
+              <article key={`${item.layer}-${item.insight}`} className="rounded-lg border border-[var(--line)] p-4">
+                <span className="rounded-md bg-[#e8f5ef] px-2 py-1 text-xs font-semibold text-[var(--accent)]">{item.layer}</span>
+                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{item.insight}</p>
+                <CitationList citations={item.citations} />
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4">
+          <h4 className="text-sm font-semibold">Comparison matrix</h4>
+          {content.comparisonMatrix.map((row) => (
+            <article key={row.dimension} className="rounded-lg border border-[var(--line)] p-4">
+              <h5 className="text-sm font-semibold">{row.dimension}</h5>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {row.observations.map((observation) => (
+                  <div key={`${row.dimension}-${observation.assetTitle}`} className="rounded-lg bg-[var(--panel-soft)] p-3">
+                    <div className="text-xs font-semibold text-[var(--accent)]">{observation.assetTitle}</div>
+                    <p className="mt-2 text-sm leading-6">{observation.point}</p>
+                    <CitationList citations={observation.citations} compact />
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
         </div>
         <div className="mt-5 grid gap-4">
           {content.uniqueEvidence.map((item) => (

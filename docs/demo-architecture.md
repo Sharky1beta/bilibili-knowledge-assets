@@ -662,11 +662,24 @@ Current implementation:
 - Supports three output schemas:
   - `illustrated_summary` with takeaway, key facts, illustrated sections, actions, and citations.
   - `evidence_cards` with claim, evidence type, screenshot, visible evidence, explanation, and citations.
-  - `multi_video_synthesis` with common themes, unique evidence per asset, synthesis, open questions, and citations.
+- `multi_video_synthesis` with common themes, unique evidence per asset, synthesis, open questions, and citations.
 - Uses Gemini text generation when `GEMINI_API_KEY` is available.
 - Falls back to deterministic rendering from `knowledge_items`, `frames`, and `segments`.
 - Saves every generated output to SQLite `outputs` so the same processed asset can be reused without reprocessing.
 - The `/generate` page now renders mode-specific previews with images and source tags instead of raw JSON.
+
+Multi-video synthesis is implemented as lightweight structured retrieval instead of a full vector database:
+
+- For each selected asset, the generator builds a retrieval pack from four sources:
+  - metadata and asset status,
+  - argument layer: `fact`, `claim`, `term`, `timeline`, and `action_item` knowledge items,
+  - visual layer: `visual_fact` items plus high-density frames, visible text, and visual-only facts,
+  - transcript layer: timestamped subtitle or ASR segments.
+- Prompt terms rank the local evidence before Gemini sees it, so the model receives compact, relevant evidence instead of all raw rows.
+- The generated output must include `sourceCoverage`, `comparisonMatrix`, `layeredEvidence`, `uniqueEvidence`, `synthesis`, and `openQuestions`.
+- `comparisonMatrix` forces cross-video observations by dimension instead of independent per-video summaries.
+- `layeredEvidence` explicitly separates argument, visual, and transcript evidence, each with citations.
+- If Gemini fails, the deterministic fallback still produces the same structure from SQLite rows.
 
 ### Milestone 7: Polish + Evidence
 
