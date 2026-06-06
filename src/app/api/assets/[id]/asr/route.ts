@@ -5,6 +5,7 @@ import { transcribeAudioWithGemini } from "@/lib/ai/transcript";
 import { getAssetDetail, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
 import { writeTranscriptManifest } from "@/lib/media/artifacts";
 import { extractAudioChunk, fallbackMediaDurationSeconds } from "@/lib/media/ffmpeg";
+import { buildFrameTranscriptWindows, transcriptWindowRadiusSec } from "@/lib/media/transcript-windows";
 import type { TranscriptSegmentInput } from "@/lib/ai/transcript";
 
 export async function POST(
@@ -29,10 +30,24 @@ export async function POST(
     );
   }
 
+  if (!detail.frames.length) {
+    return NextResponse.json(
+      { error: "Extract key frames before ASR. This demo only keeps transcript windows around selected frames." },
+      { status: 409 },
+    );
+  }
+
   try {
     const durationSec = Math.max(1, Math.floor(asset.duration ?? fallbackMediaDurationSeconds));
-    const chunkDurationSec = 60;
-    const chunks = buildAudioChunks(durationSec, chunkDurationSec);
+    const chunks = buildFrameTranscriptWindows({
+      frames: detail.frames,
+      durationSec,
+      radiusSec: transcriptWindowRadiusSec,
+    }).map((window, index) => ({
+      index,
+      startSec: window.startSec,
+      durationSec: window.endSec - window.startSec,
+    }));
     const transcriptSegments: TranscriptSegmentInput[] = [];
 
     for (const chunk of chunks) {
@@ -68,7 +83,7 @@ export async function POST(
       source: "gemini_audio_full",
       segmentCount: segments.length,
       chunks: chunks.length,
-      note: "Generated from the saved full audio file because official subtitles were unavailable or skipped.",
+      note: `Generated only from saved audio windows around key frames (+/- ${transcriptWindowRadiusSec}s), not from the full video timeline.`,
     });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
@@ -78,7 +93,7 @@ export async function POST(
       source: "gemini_audio_full",
       chunks: chunks.length,
       limits: {
-        chunkDurationSec,
+        transcriptWindowRadiusSec,
       },
     });
   } catch (error) {
@@ -86,19 +101,6 @@ export async function POST(
 
     return NextResponse.json({ asset, error: message }, { status: 500 });
   }
-}
-
-function buildAudioChunks(durationSec: number, chunkDurationSec: number) {
-  const chunks = [];
-  for (let startSec = 0, index = 0; startSec < durationSec; startSec += chunkDurationSec, index += 1) {
-    chunks.push({
-      index,
-      startSec,
-      durationSec: Math.min(chunkDurationSec, durationSec - startSec),
-    });
-  }
-
-  return chunks;
 }
 
 function advanceTranscriptStatus(assetId: string, currentStatus: string) {

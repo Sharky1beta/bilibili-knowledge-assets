@@ -168,9 +168,9 @@ This Bilibili source already exists. Reusing the saved asset without reprocessin
 
 优先级如下：
 
-1. 通过 `x/player/v2` 获取 B 站官方字幕。
-2. 如果没有官方字幕，则提取完整音频到 `public/assets/{assetId}/audio-full.mp3`。
-3. 使用 Gemini ASR 对保存的完整音频按 60 秒分块转写。
+1. 先抽取关键帧，确定需要保留文本上下文的时间点。
+2. 通过 `x/player/v2` 获取 B 站官方字幕，并只保留关键帧前后窗口内的字幕片段。
+3. 如果没有官方字幕，则提取音频，并使用 Gemini ASR 只转写关键帧前后窗口。
 
 保存的产物包括：
 
@@ -179,7 +179,9 @@ This Bilibili source already exists. Reusing the saved asset without reprocessin
 - `transcript-manifest.json`
 - SQLite `segments` 表中的 `startSec`、`endSec`、`text` 和 `summary`
 
-ASR 是 Demo 级兜底能力。长视频转写可能较慢或成本较高，因此推荐顺序是：优先官方字幕，必要时再启用 ASR。
+当前默认窗口是每张关键帧前后 20 秒。这样不会保存整条长视频的完整字幕/ASR，而是保留能解释关键视觉证据的上下文。
+
+ASR 是 Demo 级兜底能力。长视频转写可能较慢或成本较高，因此推荐顺序是：先抽关键帧，再抓官方字幕窗口，必要时才对关键帧音频窗口启用 ASR。
 
 ### 4. 知识资产构建
 
@@ -248,7 +250,7 @@ SQLite 表：
 
 - `assets`：来源身份、metadata、状态和错误信息。
 - `frames`：截图、时间戳、候选来源、候选原因、视觉分析和 visual-only facts。
-- `segments`：带时间戳的字幕或 ASR 转写文本。
+- `segments`：关键帧附近的时间戳字幕或 ASR 转写文本。
 - `knowledge_items`：带 frame/segment 引用的结构化事实。
 - `outputs`：按 mode、asset IDs、prompt 和 content JSON 保存生成结果。
 
@@ -275,10 +277,10 @@ SQLite 表：
   - 可能原因：私有视频、地区限制、流地址过期、防盗链限制。
 
 - 没有官方字幕：
-  - 使用完整音频 + ASR 作为兜底。
+  - 使用关键帧附近的音频窗口 + ASR 作为兜底。
 
 - ASR 分块失败：
-  - 失败分块会写入占位 segment，而不是让整个资产失败。
+  - 失败窗口会写入占位 segment，而不是让整个资产失败。
 
 - Gemini 生成失败：
   - 输出会 fallback 到已保存 frames、segments 和 knowledge items 的确定性渲染。

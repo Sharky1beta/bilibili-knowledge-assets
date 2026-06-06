@@ -307,7 +307,7 @@ export default async function AssetPage({
                   </div>
                 ) : (
                   <p className="mt-2 rounded-lg border border-dashed border-[var(--line)] p-3 text-[var(--muted)]">
-                    Try official Bilibili subtitles first. If none exist, extract full audio and run ASR.
+                    Extract key frames first, then fetch official subtitles. Only frame-aligned subtitle windows are kept.
                   </p>
                 )}
               </div>

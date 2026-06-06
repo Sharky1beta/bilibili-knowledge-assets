@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchBilibiliSubtitleSegments } from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
 import { writeOfficialSubtitleSnapshot, writeTranscriptManifest } from "@/lib/media/artifacts";
+import { buildFrameTranscriptWindows, filterSegmentsToWindows, transcriptWindowRadiusSec } from "@/lib/media/transcript-windows";
 
 export async function POST(
   _request: Request,
@@ -36,12 +37,19 @@ export async function POST(
       );
     }
 
-    const segments = replaceAssetSegments(asset.id, segmentsFromSubtitles);
-    await writeOfficialSubtitleSnapshot(asset.id, segmentsFromSubtitles);
+    const windows = buildFrameTranscriptWindows({
+      frames: detail.frames,
+      durationSec: asset.duration,
+    });
+    const frameAlignedSegments = filterSegmentsToWindows(segmentsFromSubtitles, windows);
+    const segments = replaceAssetSegments(asset.id, frameAlignedSegments);
+    await writeOfficialSubtitleSnapshot(asset.id, frameAlignedSegments);
     await writeTranscriptManifest(asset.id, {
       source: "bilibili_subtitle",
       segmentCount: segments.length,
-      note: "Official Bilibili subtitle file was fetched and normalized into timestamped segments.",
+      note: windows.length
+        ? `Official Bilibili subtitles were filtered to key-frame windows (+/- ${transcriptWindowRadiusSec}s).`
+        : "Official Bilibili subtitle file was fetched and normalized into timestamped segments.",
     });
     const updatedAsset = advanceTranscriptStatus(asset.id, asset.status);
 
@@ -49,6 +57,7 @@ export async function POST(
       asset: updatedAsset,
       segments,
       source: "bilibili_subtitle",
+      windows: windows.length,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Transcript extraction failed.";

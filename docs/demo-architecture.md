@@ -271,9 +271,9 @@ Current implementation:
 
 - Adds `POST /api/assets/:id/audio` to extract and save the full audio track as `public/assets/{assetId}/audio-full.mp3`.
 - Adds `POST /api/assets/:id/transcript` for official Bilibili subtitles only.
-- Calls `https://api.bilibili.com/x/player/v2` to discover subtitle files, then fetches the full subtitle JSON when available.
+- Calls `https://api.bilibili.com/x/player/v2` to discover subtitle files, then keeps only subtitle segments that overlap key-frame windows.
 - Adds `POST /api/assets/:id/asr` for videos without official subtitles.
-- ASR uses the saved full audio track, splits it into smaller chunks, and asks Gemini audio understanding to return timestamped transcript JSON per chunk.
+- ASR uses saved audio only for key-frame windows and asks Gemini audio understanding to return timestamped transcript JSON for those windows.
 - Stores each transcript segment with `startSec`, `endSec`, `text`, and `summary`.
 - Writes a transcript manifest so the asset page can show whether the text layer came from official Bilibili subtitles or ASR.
 - Advances assets to `transcript_ready` unless the asset has already reached `asset_built` or `ready`.

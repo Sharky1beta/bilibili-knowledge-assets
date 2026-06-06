@@ -49,6 +49,9 @@ export function actionDisabledReason(options: {
   }
 
   if (action === "subtitles") {
+    if (!hasFrames) {
+      return "Extract key frames first. The demo keeps only subtitle segments around selected frames.";
+    }
     return null;
   }
 
@@ -58,6 +61,10 @@ export function actionDisabledReason(options: {
 
   if (action === "asr" && !hasAudio) {
     return "Extract full audio first; ASR works from the saved audio-full.mp3 artifact.";
+  }
+
+  if (action === "asr" && !hasFrames) {
+    return "Extract key frames first. ASR only transcribes audio windows around selected frames.";
   }
 
   if (action === "build") {
