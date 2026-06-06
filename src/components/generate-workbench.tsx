@@ -1,6 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
+import { FileText, Layers3, Loader2, Sparkles } from "lucide-react";
+import type { Citation, GeneratedContent } from "@/lib/ai/outputs";
 import type { Asset, OutputMode } from "@/lib/types";
 
 const modes: { value: OutputMode; label: string }[] = [
@@ -12,19 +15,24 @@ const modes: { value: OutputMode; label: string }[] = [
 export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
   const [selected, setSelected] = useState<string[]>(assets.slice(0, 1).map((asset) => asset.id));
   const [mode, setMode] = useState<OutputMode>("illustrated_summary");
-  const [prompt, setPrompt] = useState("偏事实、保留视觉证据、输出可行动建议");
-  const [content, setContent] = useState<unknown>(null);
+  const [prompt, setPrompt] = useState("Prioritize visual evidence, reusable facts, and concrete next actions.");
+  const [content, setContent] = useState<GeneratedContent | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   async function generate() {
     setIsLoading(true);
+    setWarning(null);
+
     const response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assetIds: selected, mode, prompt }),
     });
-    const payload = (await response.json()) as { content?: unknown; error?: string };
-    setContent(payload.content ?? { error: payload.error ?? "Generation failed." });
+    const payload = (await response.json()) as { content?: GeneratedContent; error?: string; warning?: string | null };
+
+    setContent(payload.content ?? null);
+    setWarning(payload.warning ?? payload.error ?? null);
     setIsLoading(false);
   }
 
@@ -51,18 +59,26 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
             </label>
           ))}
         </div>
+
         <h2 className="mt-6 text-base font-semibold">Mode</h2>
-        <select
-          value={mode}
-          onChange={(event) => setMode(event.target.value as OutputMode)}
-          className="mt-3 h-11 w-full rounded-lg border border-[var(--line)] bg-white px-3 text-sm"
-        >
+        <div className="mt-3 grid gap-2">
           {modes.map((item) => (
-            <option key={item.value} value={item.value}>
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setMode(item.value)}
+              className={
+                item.value === mode
+                  ? "flex items-center justify-between rounded-lg border border-[var(--accent)] bg-[#e8f5ef] px-3 py-3 text-left text-sm font-semibold text-[var(--foreground)]"
+                  : "flex items-center justify-between rounded-lg border border-[var(--line)] px-3 py-3 text-left text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
+              }
+            >
               {item.label}
-            </option>
+              {item.value === "illustrated_summary" ? <FileText size={16} /> : item.value === "evidence_cards" ? <Sparkles size={16} /> : <Layers3 size={16} />}
+            </button>
           ))}
-        </select>
+        </div>
+
         <h2 className="mt-6 text-base font-semibold">Focus prompt</h2>
         <textarea
           value={prompt}
@@ -72,17 +88,191 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
         <button
           onClick={generate}
           disabled={isLoading || selected.length === 0}
-          className="mt-4 h-11 w-full rounded-lg bg-[var(--accent)] text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
+          {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
           {isLoading ? "Generating..." : "Generate output"}
         </button>
       </section>
+
       <section className="rounded-lg border border-[var(--line)] bg-white p-5">
-        <h2 className="text-base font-semibold">Output preview</h2>
-        <pre className="mt-4 min-h-96 overflow-auto rounded-lg bg-[#111815] p-4 text-xs leading-6 text-[#d8f4e3]">
-          {content ? JSON.stringify(content, null, 2) : "Choose assets and generate an output."}
-        </pre>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">Output preview</h2>
+          {content ? <span className="rounded-md bg-[var(--panel-soft)] px-2 py-1 text-xs text-[var(--muted)]">{content.mode}</span> : null}
+        </div>
+        {warning ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{warning}</p> : null}
+        <div className="mt-4 min-h-96">
+          {content ? <OutputPreview content={content} /> : <EmptyPreview />}
+        </div>
       </section>
     </div>
   );
+}
+
+function OutputPreview({ content }: { content: GeneratedContent }) {
+  if (content.mode === "evidence_cards") {
+    return (
+      <div>
+        <h3 className="text-2xl font-semibold tracking-tight">{content.title}</h3>
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {content.cards.map((card, index) => (
+            <article key={`${card.claim}-${index}`} className="overflow-hidden rounded-lg border border-[var(--line)]">
+              {card.imagePath ? (
+                <div className="relative aspect-video bg-[var(--panel-soft)]">
+                  <Image src={card.imagePath} alt={card.claim} fill className="object-cover" />
+                </div>
+              ) : null}
+              <div className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-md bg-[#e8f5ef] px-2 py-1 text-xs font-semibold text-[var(--accent)]">{card.evidenceType}</span>
+                  {card.timestampSec !== null ? <span className="font-mono text-xs text-[var(--muted)]">{formatTime(card.timestampSec)}</span> : null}
+                </div>
+                <h4 className="mt-3 text-sm font-semibold leading-6">{card.claim}</h4>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{card.explanation}</p>
+                {card.visibleEvidence.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {card.visibleEvidence.slice(0, 6).map((item) => (
+                      <span key={item} className="rounded-md bg-[var(--panel-soft)] px-2 py-1 text-xs text-[var(--muted)]">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <CitationList citations={card.citations} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (content.mode === "multi_video_synthesis") {
+    return (
+      <div>
+        <h3 className="text-2xl font-semibold tracking-tight">{content.title}</h3>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{content.synthesis}</p>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-[var(--line)] p-4">
+            <h4 className="text-sm font-semibold">Common themes</h4>
+            <ul className="mt-3 grid gap-2 text-sm leading-6 text-[var(--muted)]">
+              {content.commonThemes.map((theme) => (
+                <li key={theme}>{theme}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-lg border border-[var(--line)] p-4">
+            <h4 className="text-sm font-semibold">Open questions</h4>
+            <ul className="mt-3 grid gap-2 text-sm leading-6 text-[var(--muted)]">
+              {content.openQuestions.map((question) => (
+                <li key={question}>{question}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4">
+          {content.uniqueEvidence.map((item) => (
+            <article key={item.assetTitle} className="rounded-lg border border-[var(--line)] p-4">
+              <h4 className="text-sm font-semibold">{item.assetTitle}</h4>
+              <ul className="mt-3 grid gap-2 text-sm leading-6">
+                {item.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+              <CitationList citations={item.citations} />
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h3 className="text-2xl font-semibold tracking-tight">{content.title}</h3>
+      <p className="mt-3 rounded-lg bg-[#e8f5ef] px-4 py-3 text-sm leading-6 text-[var(--accent)]">{content.takeaway}</p>
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="grid gap-4">
+          {content.sections.map((section, index) => (
+            <article key={`${section.heading}-${index}`} className="overflow-hidden rounded-lg border border-[var(--line)]">
+              {section.imagePath ? (
+                <div className="relative aspect-video bg-[var(--panel-soft)]">
+                  <Image src={section.imagePath} alt={section.heading} fill className="object-cover" />
+                </div>
+              ) : null}
+              <div className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-semibold">{section.heading}</h4>
+                  {section.timestampSec !== null ? <span className="font-mono text-xs text-[var(--muted)]">{formatTime(section.timestampSec)}</span> : null}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{section.summary}</p>
+                <CitationList citations={section.citations} />
+              </div>
+            </article>
+          ))}
+        </div>
+        <aside className="grid content-start gap-4">
+          <div className="rounded-lg border border-[var(--line)] p-4">
+            <h4 className="text-sm font-semibold">Key facts</h4>
+            <div className="mt-3 grid gap-3">
+              {content.keyFacts.map((fact) => (
+                <div key={fact.text} className="rounded-lg bg-[var(--panel-soft)] p-3">
+                  <p className="text-sm leading-6">{fact.text}</p>
+                  <CitationList citations={fact.citations} compact />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border border-[var(--line)] p-4">
+            <h4 className="text-sm font-semibold">Actions</h4>
+            <ul className="mt-3 grid gap-2 text-sm leading-6 text-[var(--muted)]">
+              {content.actionSuggestions.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function CitationList({ citations, compact = false }: { citations: Citation[]; compact?: boolean }) {
+  if (!citations.length) {
+    return null;
+  }
+
+  return (
+    <div className={compact ? "mt-2 flex flex-wrap gap-1" : "mt-3 flex flex-wrap gap-2"}>
+      {citations.slice(0, compact ? 3 : 6).map((citation) => (
+        <span key={`${citation.assetTitle}-${citation.sourceId}`} className="rounded-md bg-white px-2 py-1 font-mono text-[11px] text-[var(--muted)]">
+          {citation.kind}:{shortId(citation.sourceId)}
+          {citation.timestampSec !== null ? ` @${formatTime(citation.timestampSec)}` : ""}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function EmptyPreview() {
+  return (
+    <div className="flex min-h-96 items-center justify-center rounded-lg border border-dashed border-[var(--line)] bg-[var(--panel-soft)] p-8 text-center">
+      <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
+        Choose one built asset for summary or cards, or select several assets for synthesis.
+      </p>
+    </div>
+  );
+}
+
+function formatTime(seconds: number) {
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60)
+    .toString()
+    .padStart(2, "0");
+  const rest = (total % 60).toString().padStart(2, "0");
+  return `${minutes}:${rest}`;
+}
+
+function shortId(id: string) {
+  return id.length > 10 ? id.slice(0, 10) : id;
 }

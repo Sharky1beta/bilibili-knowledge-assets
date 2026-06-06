@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { generateOutputContent } from "@/lib/ai/outputs";
 import { getAssetDetail, saveGeneratedOutput } from "@/lib/db/assets";
 import type { OutputMode } from "@/lib/types";
 
@@ -28,66 +29,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "One or more assets were not found." }, { status: 404 });
   }
 
-  const content = buildMockContent(
-    mode,
-    details.filter(Boolean) as NonNullable<ReturnType<typeof getAssetDetail>>[],
-    prompt,
-  );
+  const validDetails = details.filter(Boolean) as NonNullable<ReturnType<typeof getAssetDetail>>[];
+  const { content, usedFallback, warning } = await generateOutputContent(mode, validDetails, prompt);
   const output = saveGeneratedOutput(mode, assetIds, prompt, content);
 
-  return NextResponse.json({ outputId: output.id, content });
-}
-
-function buildMockContent(
-  mode: OutputMode,
-  details: NonNullable<ReturnType<typeof getAssetDetail>>[],
-  prompt: string,
-) {
-  if (mode === "evidence_cards") {
-    return {
-      mode,
-      prompt,
-      cards: details.flatMap((detail) =>
-        detail.frames.map((frame) => ({
-          claim: frame.onlyInVisual[0] ?? frame.summary,
-          timestamp: frame.timestampSec,
-          screenshot: frame.imagePath,
-          visibleEvidence: frame.visibleText,
-          explanation: frame.summary,
-          source: detail.asset.title,
-        })),
-      ),
-    };
-  }
-
-  if (mode === "multi_video_synthesis") {
-    return {
-      mode,
-      prompt,
-      commonThemes: ["Reusable memory", "Timestamped citations", "Visual evidence before generation"],
-      sources: details.map((detail) => ({
-        asset: detail.asset.title,
-        citedFrames: detail.frames.map((frame) => ({
-          timestamp: frame.timestampSec,
-          reason: frame.retentionReason,
-        })),
-      })),
-    };
-  }
-
-  return {
-    mode,
-    prompt,
-    title: "Illustrated summary",
-    takeaway: "The asset preserves transcript and visual evidence so outputs can be regenerated without reprocessing the video.",
-    sections: details.map((detail) => ({
-      source: detail.asset.title,
-      keyFacts: detail.knowledgeItems.map((item) => item.content),
-      illustrations: detail.frames.map((frame) => ({
-        timestamp: frame.timestampSec,
-        image: frame.imagePath,
-        caption: frame.summary,
-      })),
-    })),
-  };
+  return NextResponse.json({ outputId: output.id, content, usedFallback, warning });
 }

@@ -626,6 +626,18 @@ Current implementation:
 - Evidence Cards.
 - Multi-video synthesis.
 
+Current implementation:
+
+- Replaces mock generation in `POST /api/generate` with reusable memory-based generation.
+- Supports three output schemas:
+  - `illustrated_summary` with takeaway, key facts, illustrated sections, actions, and citations.
+  - `evidence_cards` with claim, evidence type, screenshot, visible evidence, explanation, and citations.
+  - `multi_video_synthesis` with common themes, unique evidence per asset, synthesis, open questions, and citations.
+- Uses Gemini text generation when `GEMINI_API_KEY` is available.
+- Falls back to deterministic rendering from `knowledge_items`, `frames`, and `segments`.
+- Saves every generated output to SQLite `outputs` so the same processed asset can be reused without reprocessing.
+- The `/generate` page now renders mode-specific previews with images and source tags instead of raw JSON.
+
 ### Milestone 7: Polish + Evidence
 
 - README.
