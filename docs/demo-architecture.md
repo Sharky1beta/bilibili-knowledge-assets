@@ -610,6 +610,16 @@ Current implementation:
 - Structured knowledge items.
 - Asset detail source traceability.
 
+Current implementation:
+
+- Adds `POST /api/assets/:id/build`.
+- Builds a reusable knowledge asset from metadata, transcript segments when present, and Gemini frame analyses.
+- Requests strict structured JSON containing `fact`, `claim`, `visual_fact`, `action_item`, `term`, and `timeline` items.
+- Persists items into `knowledge_items` with `sourceSegmentIds` and `sourceFrameIds` for traceability.
+- Provides a deterministic fallback when Gemini is unavailable, using metadata plus high-density visual frames.
+- Advances status to `asset_built`.
+- Asset detail page includes a `Build asset` action and shows source frame/segment IDs under every knowledge item.
+
 ### Milestone 6: Output Generation
 
 - Illustrated Summary.

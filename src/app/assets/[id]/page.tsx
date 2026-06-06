@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { AnalyzeVisionButton } from "@/components/analyze-vision-button";
+import { BuildKnowledgeButton } from "@/components/build-knowledge-button";
 import { ProcessAssetButton } from "@/components/process-asset-button";
 import { StatusPill } from "@/components/status-pill";
 import { getAssetDetail } from "@/lib/db/assets";
@@ -57,6 +58,7 @@ export default async function AssetPage({
           <div className="flex flex-wrap gap-2">
             <ProcessAssetButton assetId={asset.id} />
             <AnalyzeVisionButton assetId={asset.id} />
+            <BuildKnowledgeButton assetId={asset.id} />
             <a
               href={asset.url}
               target="_blank"
@@ -163,6 +165,18 @@ export default async function AssetPage({
                 <div key={item.id} className="rounded-lg bg-[var(--panel-soft)] p-3">
                   <div className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{item.type}</div>
                   <p className="mt-2 text-sm leading-6">{item.content}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {item.sourceFrameIds.map((frameId) => (
+                      <span key={frameId} className="rounded-md bg-white px-2 py-1 font-mono text-[11px] text-[var(--muted)]">
+                        frame:{shortId(frameId)}
+                      </span>
+                    ))}
+                    {item.sourceSegmentIds.map((segmentId) => (
+                      <span key={segmentId} className="rounded-md bg-white px-2 py-1 font-mono text-[11px] text-[var(--muted)]">
+                        segment:{shortId(segmentId)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
               {!knowledgeItems.length ? <p className="text-sm text-[var(--muted)]">No structured items yet.</p> : null}
@@ -237,4 +251,8 @@ function formatDuration(seconds: number) {
   }
 
   return `${minutes}m ${rest}s`;
+}
+
+function shortId(id: string) {
+  return id.length > 12 ? id.slice(0, 12) : id;
 }

@@ -5,6 +5,13 @@ import type { BilibiliMetadata } from "@/lib/bilibili/client";
 import type { ExtractedFrame } from "@/lib/media/ffmpeg";
 import type { Asset, Frame, GeneratedOutput, KnowledgeItem, OutputMode, Segment } from "@/lib/types";
 
+export type KnowledgeItemInput = {
+  type: string;
+  content: string;
+  sourceSegmentIds: string[];
+  sourceFrameIds: string[];
+};
+
 type AssetRow = {
   id: string;
   aid: number | null;
@@ -248,6 +255,34 @@ export function updateFrameAnalysis(frameId: string, analysis: FrameVisualAnalys
   }
 
   return mapFrame(row);
+}
+
+export function replaceKnowledgeItems(assetId: string, items: KnowledgeItemInput[]): KnowledgeItem[] {
+  const database = getDb();
+  const deleteItems = database.prepare("DELETE FROM knowledge_items WHERE asset_id = ?");
+  const insertItem = database.prepare(
+    `INSERT INTO knowledge_items (
+      id, asset_id, type, content, source_segment_ids_json, source_frame_ids_json
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+
+  const transaction = database.transaction(() => {
+    deleteItems.run(assetId);
+    for (const item of items) {
+      insertItem.run(
+        `know_${randomUUID()}`,
+        assetId,
+        item.type,
+        item.content,
+        JSON.stringify(item.sourceSegmentIds),
+        JSON.stringify(item.sourceFrameIds),
+      );
+    }
+  });
+
+  transaction();
+
+  return getAssetDetail(assetId)!.knowledgeItems;
 }
 
 export function createDemoAsset() {
