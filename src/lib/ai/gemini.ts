@@ -64,7 +64,7 @@ export async function analyzeFrameWithGemini(frame: Frame): Promise<FrameVisualA
               },
             },
             {
-              text: frameAnalysisPrompt(frame.timestampSec),
+              text: frameAnalysisPrompt(frame),
             },
           ],
         },
@@ -90,9 +90,13 @@ export async function analyzeFrameWithGemini(frame: Frame): Promise<FrameVisualA
   return normalizeAnalysis(parseJson(text));
 }
 
-function frameAnalysisPrompt(timestampSec: number) {
+function frameAnalysisPrompt(frame: Frame) {
   return `
-You are analyzing a screenshot from a Bilibili long video at ${timestampSec} seconds.
+You are analyzing a screenshot from a Bilibili long video at ${frame.timestampSec} seconds.
+
+Candidate selection signal:
+- source: ${frame.visualType}
+- reason: ${frame.retentionReason}
 
 Return strict JSON only, with this exact shape:
 {
@@ -111,6 +115,7 @@ Scoring guidance:
 - 0.9-1.0: dense visual evidence with numbers, claims, steps, code, or diagrams.
 
 Prefer preserving frames with charts, tables, code, whiteboard derivations, formulas, visible numbers, diagrams, or slide conclusions.
+Use the candidate signal as context, but make the final decision from visible evidence in the image.
 `.trim();
 }
 

@@ -239,9 +239,9 @@ export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): F
         frame.publicPath,
         "Candidate frame awaiting visual understanding.",
         JSON.stringify([]),
-        "candidate",
+        frame.candidateSource,
         0.3,
-        "Candidate frame for visual review.",
+        frame.candidateReason,
         JSON.stringify([]),
       );
     }

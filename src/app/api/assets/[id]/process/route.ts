@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchDanmakuHotspots } from "@/lib/bilibili/danmaku";
 import { fetchBilibiliPlayUrl } from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetFrames, updateAssetStatus } from "@/lib/db/assets";
 import { extractCandidateFrames, maxCandidateFrames, mediaSampleLimitSeconds } from "@/lib/media/ffmpeg";
@@ -26,12 +27,19 @@ export async function POST(
   try {
     updateAssetStatus(asset.id, "video_resolved");
     const playUrl = await fetchBilibiliPlayUrl(asset);
+    const danmakuHotspots = asset.cid
+      ? await fetchDanmakuHotspots({
+          cid: asset.cid,
+          durationSec: Math.min(asset.duration ?? mediaSampleLimitSeconds, mediaSampleLimitSeconds),
+        }).catch(() => [])
+      : [];
 
     updateAssetStatus(asset.id, "media_downloaded");
     const extractedFrames = await extractCandidateFrames({
       assetId: asset.id,
       playUrl,
       durationSec: asset.duration,
+      danmakuHotspots,
     });
 
     const frames = replaceAssetFrames(asset.id, extractedFrames);
@@ -43,6 +51,7 @@ export async function POST(
       limits: {
         mediaSampleLimitSeconds,
         maxCandidateFrames,
+        danmakuHotspots: danmakuHotspots.length,
       },
     });
   } catch (error) {

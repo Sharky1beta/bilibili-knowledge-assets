@@ -212,16 +212,30 @@ Do not use fixed interval sampling as the final strategy.
 Use an information-driven candidate strategy:
 
 1. Scene change detection.
-2. OCR/text density changes.
-3. Large visual difference from previous kept frame.
-4. Nearby subtitle/segment boundaries.
-5. Heuristic priority for slides, code, charts, whiteboards, tables, numbers, diagrams.
+2. Danmaku heat peaks as crowd-recognized semantic boundaries.
+3. OCR/text density changes.
+4. Large visual difference from previous kept frame.
+5. Nearby subtitle/segment boundaries.
+6. Heuristic priority for slides, code, charts, whiteboards, tables, numbers, diagrams.
 
 Implementation plan:
 
 - Use `ffmpeg` scene detection for first candidate set.
-- Add a lightweight fallback frame set only when scene detection returns too few frames.
+- Fetch Bilibili danmaku XML and score 10-second buckets by comment count plus high-signal words such as "高能", "名场面", "666", and "破防".
+- Add peak buckets from the danmaku heat curve as high-energy candidate timestamps.
+- Add a lightweight coverage fallback only when scene/danmaku signals are sparse.
 - Mark fallback frames as fallback candidates; final retained frames must still pass visual scoring.
+
+Current implementation:
+
+- `POST /api/assets/:id/process` resolves the playable stream and fetches danmaku hotspots for the selected `cid`.
+- `extractCandidateFrames()` runs `ffmpeg` scene detection with `select='gt(scene,0.32)',showinfo`.
+- It merges scene-change timestamps, danmaku heat peaks, and a small number of fallback coverage points.
+- Candidates are deduplicated within a short time window, ranked by signal strength, capped at 12, and then extracted as screenshots.
+- Each candidate stores its source (`scene_change`, `danmaku_hotspot`, `mixed_signal`, or `coverage_fallback`) and reason before visual analysis.
+- Gemini vision receives that candidate signal, but the final retention decision is based on visible evidence: charts, tables, code, whiteboards, formulas, numbers, diagrams, and other visual-only facts.
+
+This is designed for the hard requirement: fixed interval timestamps are no longer the primary selection method. Time coverage is only a fallback, while actual retained evidence must be justified by scene changes, audience heat, and visual information density.
 
 ### Step 6: Visual Understanding
 
