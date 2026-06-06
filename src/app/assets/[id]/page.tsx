@@ -138,8 +138,16 @@ export default async function AssetPage({
                           {frame.visualType}
                         </span>
                       </div>
+                      {frame.candidateSource ? (
+                        <div className="mt-3 rounded-md bg-[#f1f8f5] px-2 py-1 text-xs leading-5 text-[var(--accent)]">
+                          Candidate source: {formatCandidateSource(frame.candidateSource)}
+                        </div>
+                      ) : null}
                       <p className="mt-3 text-sm leading-6">{frame.summary}</p>
                       <p className="mt-3 text-xs leading-5 text-[var(--muted)]">{formatRetentionReason(frame.retentionReason)}</p>
+                      {frame.candidateReason ? (
+                        <p className="mt-2 text-xs leading-5 text-[var(--muted)]">Signal: {frame.candidateReason}</p>
+                      ) : null}
                       <div className="mt-3">
                         <div className="mb-1 flex items-center justify-between text-xs text-[var(--muted)]">
                           <span>Information density</span>
@@ -381,4 +389,8 @@ function formatRetentionReason(reason: string) {
   }
 
   return reason;
+}
+
+function formatCandidateSource(source: string) {
+  return source.replace(/_/g, " ");
 }

@@ -43,6 +43,8 @@ export type Frame = {
   assetId: string;
   timestampSec: number;
   imagePath: string;
+  candidateSource: string | null;
+  candidateReason: string | null;
   summary: string;
   visibleText: string[];
   visualType: string;

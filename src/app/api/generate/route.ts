@@ -34,5 +34,23 @@ export async function POST(request: Request) {
   const output = saveGeneratedOutput(mode, assetIds, prompt, content);
   const assets = markBuiltAssetsReady(assetIds);
 
-  return NextResponse.json({ outputId: output.id, content, usedFallback, warning, assets });
+  return NextResponse.json({
+    outputId: output.id,
+    content,
+    usedFallback,
+    warning,
+    assets,
+    reuseProof: {
+      message: "No video reprocessing was performed. This run reused stored metadata, frames, transcript segments, and knowledge items.",
+      assets: validDetails.map((detail) => ({
+        assetId: detail.asset.id,
+        title: detail.asset.title,
+        status: detail.asset.status,
+        metadata: Boolean(detail.asset.bvid || detail.asset.aid || detail.asset.cid),
+        frames: detail.frames.length,
+        transcriptSegments: detail.segments.length,
+        knowledgeItems: detail.knowledgeItems.length,
+      })),
+    },
+  });
 }

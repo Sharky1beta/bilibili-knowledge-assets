@@ -7,6 +7,19 @@ import type { Citation, GeneratedContent } from "@/lib/ai/outputs";
 import type { Asset, AssetStatus, OutputMode } from "@/lib/types";
 import { StatusPill } from "@/components/status-pill";
 
+type ReuseProof = {
+  message: string;
+  assets: Array<{
+    assetId: string;
+    title: string;
+    status: AssetStatus;
+    metadata: boolean;
+    frames: number;
+    transcriptSegments: number;
+    knowledgeItems: number;
+  }>;
+};
+
 const modes: { value: OutputMode; label: string }[] = [
   { value: "illustrated_summary", label: "Illustrated Summary" },
   { value: "evidence_cards", label: "Evidence Cards" },
@@ -31,6 +44,7 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
   const [prompt, setPrompt] = useState("Prioritize visual evidence, reusable facts, and concrete next actions.");
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [reuseProof, setReuseProof] = useState<ReuseProof | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   async function generate() {
@@ -42,10 +56,16 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assetIds: selected, mode, prompt }),
     });
-    const payload = (await response.json()) as { content?: GeneratedContent; error?: string; warning?: string | null };
+    const payload = (await response.json()) as {
+      content?: GeneratedContent;
+      error?: string;
+      warning?: string | null;
+      reuseProof?: ReuseProof;
+    };
 
     setContent(payload.content ?? null);
     setWarning(payload.warning ?? payload.error ?? null);
+    setReuseProof(payload.reuseProof ?? null);
     setIsLoading(false);
   }
 
@@ -109,10 +129,32 @@ export function GenerateWorkbench({ assets }: { assets: Asset[] }) {
           {content ? <span className="rounded-md bg-[var(--panel-soft)] px-2 py-1 text-xs text-[var(--muted)]">{content.mode}</span> : null}
         </div>
         {warning ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{warning}</p> : null}
+        {reuseProof ? <ReuseProofPanel proof={reuseProof} /> : null}
         <div className="mt-4 min-h-96">
           {content ? <OutputPreview content={content} /> : <EmptyPreview />}
         </div>
       </section>
+    </div>
+  );
+}
+
+function ReuseProofPanel({ proof }: { proof: ReuseProof }) {
+  return (
+    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+      <p className="text-sm font-semibold text-emerald-900">{proof.message}</p>
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        {proof.assets.map((asset) => (
+          <div key={asset.assetId} className="rounded-md bg-white/75 px-3 py-2 text-xs text-emerald-900">
+            <div className="truncate font-semibold">{asset.title}</div>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-emerald-800">
+              <span>metadata {asset.metadata ? "yes" : "no"}</span>
+              <span>frames {asset.frames}</span>
+              <span>transcript {asset.transcriptSegments}</span>
+              <span>knowledge {asset.knowledgeItems}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

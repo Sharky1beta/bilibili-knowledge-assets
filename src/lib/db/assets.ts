@@ -46,6 +46,8 @@ type FrameRow = {
   asset_id: string;
   timestamp_sec: number;
   image_path: string;
+  candidate_source: string | null;
+  candidate_reason: string | null;
   summary: string;
   visible_text_json: string;
   visual_type: string;
@@ -276,9 +278,9 @@ export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): F
   const deleteFrames = database.prepare("DELETE FROM frames WHERE asset_id = ?");
   const insertFrame = database.prepare(
     `INSERT INTO frames (
-      id, asset_id, timestamp_sec, image_path, summary, visible_text_json,
+      id, asset_id, timestamp_sec, image_path, candidate_source, candidate_reason, summary, visible_text_json,
       visual_type, information_density, retention_reason, only_in_visual_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   const transaction = database.transaction(() => {
@@ -289,9 +291,11 @@ export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): F
         assetId,
         frame.timestampSec,
         frame.publicPath,
+        frame.candidateSource,
+        frame.candidateReason,
         "Candidate frame awaiting visual understanding.",
         JSON.stringify([]),
-        frame.candidateSource,
+        "candidate",
         0.3,
         frame.candidateReason,
         JSON.stringify([]),
@@ -561,6 +565,8 @@ function mapFrame(row: FrameRow): Frame {
     assetId: row.asset_id,
     timestampSec: row.timestamp_sec,
     imagePath: row.image_path,
+    candidateSource: row.candidate_source,
+    candidateReason: row.candidate_reason,
     summary: row.summary,
     visibleText: JSON.parse(row.visible_text_json) as string[],
     visualType: row.visual_type,

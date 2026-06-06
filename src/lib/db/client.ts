@@ -55,6 +55,8 @@ function ensureSchema(database: Database.Database) {
       asset_id TEXT NOT NULL,
       timestamp_sec REAL NOT NULL,
       image_path TEXT NOT NULL,
+      candidate_source TEXT,
+      candidate_reason TEXT,
       summary TEXT NOT NULL,
       visible_text_json TEXT NOT NULL,
       visual_type TEXT NOT NULL,
@@ -93,6 +95,8 @@ function ensureSchema(database: Database.Database) {
   ensureColumn(database, "assets", "cid", "INTEGER");
   ensureColumn(database, "assets", "tags_json", "TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(database, "assets", "page_count", "INTEGER");
+  ensureColumn(database, "frames", "candidate_source", "TEXT");
+  ensureColumn(database, "frames", "candidate_reason", "TEXT");
 }
 
 function ensureColumn(database: Database.Database, table: string, column: string, definition: string) {
