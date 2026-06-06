@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -30,14 +30,14 @@ export function BuildKnowledgeButton({ assetId, disabledReason }: { assetId: str
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <button
         type="button"
         onClick={buildKnowledge}
         disabled={isBuilding || Boolean(disabledReason)}
         translate="no"
         title={disabledReason ?? undefined}
-        className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#7c3aed] px-4 text-sm font-semibold text-white transition hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#7c3aed] px-4 text-sm font-semibold text-white transition hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span aria-hidden={isBuilding} className={isBuilding ? "hidden" : "inline-flex"}>
           <Boxes size={16} />
@@ -48,8 +48,9 @@ export function BuildKnowledgeButton({ assetId, disabledReason }: { assetId: str
         <span className={isBuilding ? "hidden" : "inline"}>构建资产</span>
         <span className={isBuilding ? "inline" : "hidden"}>正在构建...</span>
       </button>
-      {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
-      {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
+      {disabledReason ? <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{disabledReason}</p> : null}
+      {error ? <p className="mt-2 text-sm leading-5 text-red-700">{error}</p> : null}
     </div>
   );
 }
+

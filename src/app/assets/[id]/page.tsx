@@ -81,40 +81,46 @@ export default async function AssetPage({
               <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{asset.errorMessage}</p>
             ) : null}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <ProcessAssetButton
-              assetId={asset.id}
-              disabledReason={actionDisabledReason({ ...pipelineContext, action: "process" })}
-            />
-            <AnalyzeVisionButton
-              assetId={asset.id}
-              disabledReason={actionDisabledReason({ ...pipelineContext, action: "vision" })}
-            />
-            <ExtractAudioButton
-              assetId={asset.id}
-              disabledReason={actionDisabledReason({ ...pipelineContext, action: "audio" })}
-            />
-            <ExtractTranscriptButton
-              assetId={asset.id}
-              disabledReason={actionDisabledReason({ ...pipelineContext, action: "subtitles" })}
-            />
-            <TranscribeAudioButton
-              assetId={asset.id}
-              disabledReason={actionDisabledReason({ ...pipelineContext, action: "asr" })}
-            />
-            <BuildKnowledgeButton
-              assetId={asset.id}
-              disabledReason={actionDisabledReason({ ...pipelineContext, action: "build" })}
-            />
-            <a
-              href={asset.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--line)] px-4 text-sm font-semibold"
-            >
-              原视频
-              <ExternalLink size={15} />
-            </a>
+          <div className="w-full rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 lg:w-[560px]">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">处理操作</h2>
+              <span className="text-xs text-[var(--muted)]">按推荐顺序执行</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ProcessAssetButton
+                assetId={asset.id}
+                disabledReason={actionDisabledReason({ ...pipelineContext, action: "process" })}
+              />
+              <AnalyzeVisionButton
+                assetId={asset.id}
+                disabledReason={actionDisabledReason({ ...pipelineContext, action: "vision" })}
+              />
+              <ExtractAudioButton
+                assetId={asset.id}
+                disabledReason={actionDisabledReason({ ...pipelineContext, action: "audio" })}
+              />
+              <ExtractTranscriptButton
+                assetId={asset.id}
+                disabledReason={actionDisabledReason({ ...pipelineContext, action: "subtitles" })}
+              />
+              <TranscribeAudioButton
+                assetId={asset.id}
+                disabledReason={actionDisabledReason({ ...pipelineContext, action: "asr" })}
+              />
+              <BuildKnowledgeButton
+                assetId={asset.id}
+                disabledReason={actionDisabledReason({ ...pipelineContext, action: "build" })}
+              />
+              <a
+                href={asset.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[var(--line)] bg-white px-4 text-sm font-semibold"
+              >
+                原视频
+                <ExternalLink size={15} />
+              </a>
+            </div>
           </div>
         </div>
       </header>
