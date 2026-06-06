@@ -16,13 +16,10 @@ import type { AssetStatus } from "@/lib/types";
 
 export default async function AssetPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ reused?: string }>;
 }) {
   const { id } = await params;
-  const query = searchParams ? await searchParams : {};
   const detail = getAssetDetail(id);
 
   if (!detail) {
@@ -48,12 +45,6 @@ export default async function AssetPage({
         <ArrowLeft size={16} />
         return
       </Link>
-
-      {query.reused === "1" ? (
-        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          这个 B 站来源已经存在。本次直接复用已保存资产，不重新处理视频。
-        </p>
-      ) : null}
 
       <header className="mt-5 rounded-lg border border-[var(--line)] bg-white p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
