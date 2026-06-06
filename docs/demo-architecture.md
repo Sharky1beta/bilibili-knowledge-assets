@@ -249,6 +249,16 @@ Priority:
 2. Audio transcription if feasible.
 3. Metadata + visual frames only if transcript is unavailable.
 
+Current implementation:
+
+- Adds `POST /api/assets/:id/transcript`.
+- First calls `https://api.bilibili.com/x/player/v2` to discover Bilibili subtitle files.
+- If a subtitle file is available, fetches it and writes timestamped rows into `segments`.
+- If no subtitle exists, resolves the playable stream, extracts an mp3 audio sample with `ffmpeg`, and asks Gemini audio understanding to return timestamped transcript JSON.
+- Stores each transcript segment with `startSec`, `endSec`, `text`, and `summary`.
+- Advances assets to `transcript_ready` unless the asset has already reached `asset_built` or `ready`.
+- Asset detail page includes an `Extract transcript` action and shows the transcript segment timeline.
+
 The demo should degrade gracefully:
 
 - "No subtitles found; generated output relies on metadata and visual frames."

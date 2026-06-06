@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { AnalyzeVisionButton } from "@/components/analyze-vision-button";
 import { BuildKnowledgeButton } from "@/components/build-knowledge-button";
+import { ExtractTranscriptButton } from "@/components/extract-transcript-button";
 import { ProcessAssetButton } from "@/components/process-asset-button";
 import { StatusPill } from "@/components/status-pill";
 import { getAssetDetail } from "@/lib/db/assets";
@@ -58,6 +59,7 @@ export default async function AssetPage({
           <div className="flex flex-wrap gap-2">
             <ProcessAssetButton assetId={asset.id} />
             <AnalyzeVisionButton assetId={asset.id} />
+            <ExtractTranscriptButton assetId={asset.id} />
             <BuildKnowledgeButton assetId={asset.id} />
             <a
               href={asset.url}
@@ -215,6 +217,7 @@ export default async function AssetPage({
                 "media_downloaded",
                 "frames_extracted",
                 "visual_understood",
+                "transcript_ready",
                 "asset_built",
                 "ready",
               ].map((step) => (

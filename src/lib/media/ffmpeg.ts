@@ -12,6 +12,12 @@ export type ExtractedFrame = {
   publicPath: string;
 };
 
+export type ExtractedAudioSample = {
+  absolutePath: string;
+  durationSec: number;
+  mimeType: "audio/mpeg";
+};
+
 export async function extractCandidateFrames(options: {
   assetId: string;
   playUrl: BilibiliPlayUrl;
@@ -45,6 +51,54 @@ export async function extractCandidateFrames(options: {
   }
 
   return frames;
+}
+
+export async function extractAudioSample(options: {
+  assetId: string;
+  playUrl: BilibiliPlayUrl;
+  durationSec: number | null;
+}): Promise<ExtractedAudioSample> {
+  const assetDir = path.join(process.cwd(), "public", "assets", options.assetId);
+  await fs.mkdir(assetDir, { recursive: true });
+
+  const sampleDuration = Math.min(options.durationSec ?? mediaSampleLimitSeconds, mediaSampleLimitSeconds);
+  const outputPath = path.join(assetDir, "audio-sample.mp3");
+  const errors: string[] = [];
+
+  for (const url of options.playUrl.urls) {
+    try {
+      await runFfmpeg([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-headers",
+        `Referer: ${options.playUrl.referer}\r\nUser-Agent: ${options.playUrl.userAgent}\r\n`,
+        "-i",
+        url,
+        "-t",
+        String(sampleDuration),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-b:a",
+        "48k",
+        outputPath,
+      ]);
+
+      return {
+        absolutePath: outputPath,
+        durationSec: sampleDuration,
+        mimeType: "audio/mpeg",
+      };
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`All Bilibili stream mirrors failed during audio extraction. ${errors.at(-1) ?? ""}`);
 }
 
 async function extractSingleFrame(options: {

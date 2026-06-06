@@ -54,6 +54,28 @@ type BilibiliPlayUrlResponse = {
   };
 };
 
+type BilibiliPlayerV2Response = {
+  code: number;
+  message: string;
+  data?: {
+    subtitle?: {
+      subtitles?: Array<{
+        lan?: string;
+        lan_doc?: string;
+        subtitle_url?: string;
+      }>;
+    };
+  };
+};
+
+type BilibiliSubtitleResponse = {
+  body?: Array<{
+    from?: number;
+    to?: number;
+    content?: string;
+  }>;
+};
+
 export type BilibiliMetadata = {
   aid: number;
   bvid: string;
@@ -88,6 +110,13 @@ export type BilibiliPlayUrl = {
   urls: string[];
   referer: string;
   userAgent: string;
+};
+
+export type BilibiliSubtitleSegment = {
+  startSec: number;
+  endSec: number;
+  text: string;
+  summary: string | null;
 };
 
 export async function fetchBilibiliMetadata(input: string): Promise<BilibiliMetadata> {
@@ -166,6 +195,64 @@ export async function fetchBilibiliPlayUrl(asset: {
   };
 }
 
+export async function fetchBilibiliSubtitleSegments(asset: {
+  aid: number | null;
+  bvid: string | null;
+  cid: number | null;
+  url: string;
+}): Promise<BilibiliSubtitleSegment[]> {
+  if (!asset.cid || (!asset.bvid && !asset.aid)) {
+    throw new BilibiliError("Cannot fetch subtitles before metadata provides cid and bvid/aid.");
+  }
+
+  const params = new URLSearchParams({ cid: String(asset.cid) });
+  if (asset.bvid) {
+    params.set("bvid", asset.bvid);
+  } else if (asset.aid) {
+    params.set("aid", String(asset.aid));
+  }
+
+  const referer = asset.bvid ? `https://www.bilibili.com/video/${asset.bvid}` : asset.url;
+  const response = await fetch(`https://api.bilibili.com/x/player/v2?${params.toString()}`, {
+    headers: bilibiliHeaders(referer),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new BilibiliError(`Bilibili subtitle metadata request failed with HTTP ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as BilibiliPlayerV2Response;
+  if (payload.code !== 0 || !payload.data) {
+    throw new BilibiliError(payload.message || "Bilibili subtitle metadata returned no data.", payload.code);
+  }
+
+  const subtitle = payload.data.subtitle?.subtitles?.find((item) => item.subtitle_url) ?? null;
+  if (!subtitle?.subtitle_url) {
+    return [];
+  }
+
+  const subtitleUrl = normalizeBilibiliResourceUrl(subtitle.subtitle_url);
+  const subtitleResponse = await fetch(subtitleUrl, {
+    headers: bilibiliHeaders(referer),
+    cache: "no-store",
+  });
+
+  if (!subtitleResponse.ok) {
+    throw new BilibiliError(`Bilibili subtitle file request failed with HTTP ${subtitleResponse.status}.`);
+  }
+
+  const subtitlePayload = (await subtitleResponse.json()) as BilibiliSubtitleResponse;
+  return (subtitlePayload.body ?? [])
+    .map((item) => ({
+      startSec: Number(item.from),
+      endSec: Number(item.to),
+      text: item.content?.trim() ?? "",
+      summary: null,
+    }))
+    .filter((item) => Number.isFinite(item.startSec) && Number.isFinite(item.endSec) && item.text);
+}
+
 async function fetchView(parsed: ParsedBilibiliInput): Promise<Omit<BilibiliMetadata, "tags">> {
   const params = new URLSearchParams();
   if (parsed.kind === "bvid") {
@@ -240,6 +327,13 @@ function bilibiliHeaders(referer: string) {
     Referer: referer,
     Accept: "application/json,text/plain,*/*",
   };
+}
+
+function normalizeBilibiliResourceUrl(url: string) {
+  if (url.startsWith("//")) {
+    return `https:${url}`;
+  }
+  return url;
 }
 
 const bilibiliUserAgent =

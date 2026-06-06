@@ -20,6 +20,7 @@ const statusSteps: AssetStatus[] = [
   "media_downloaded",
   "frames_extracted",
   "visual_understood",
+  "transcript_ready",
   "asset_built",
   "ready",
 ];

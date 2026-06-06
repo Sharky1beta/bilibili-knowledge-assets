@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FrameVisualAnalysis } from "@/lib/ai/gemini";
 import { getDb } from "@/lib/db/client";
 import type { BilibiliMetadata } from "@/lib/bilibili/client";
+import type { TranscriptSegmentInput } from "@/lib/ai/transcript";
 import type { ExtractedFrame } from "@/lib/media/ffmpeg";
 import type { Asset, Frame, GeneratedOutput, KnowledgeItem, OutputMode, Segment } from "@/lib/types";
 
@@ -249,6 +250,32 @@ export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): F
   transaction();
 
   return getAssetDetail(assetId)!.frames;
+}
+
+export function replaceAssetSegments(assetId: string, segments: TranscriptSegmentInput[]): Segment[] {
+  const database = getDb();
+  const deleteSegments = database.prepare("DELETE FROM segments WHERE asset_id = ?");
+  const insertSegment = database.prepare(
+    "INSERT INTO segments (id, asset_id, start_sec, end_sec, text, summary) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+
+  const transaction = database.transaction(() => {
+    deleteSegments.run(assetId);
+    for (const segment of segments) {
+      insertSegment.run(
+        `seg_${randomUUID()}`,
+        assetId,
+        segment.startSec,
+        segment.endSec,
+        segment.text,
+        segment.summary,
+      );
+    }
+  });
+
+  transaction();
+
+  return getAssetDetail(assetId)!.segments;
 }
 
 export function updateFrameAnalysis(frameId: string, analysis: FrameVisualAnalysis): Frame {
