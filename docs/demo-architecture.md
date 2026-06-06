@@ -593,6 +593,17 @@ Current implementation:
 - Frame JSON schema.
 - Key frame selection and deduplication.
 
+Current implementation:
+
+- Adds `POST /api/assets/:id/vision`.
+- Requires `GEMINI_API_KEY` in `.env.local`.
+- Sends each extracted candidate screenshot to Gemini vision through `generateContent`.
+- Requests strict JSON with `summary`, `visibleText`, `visualType`, `informationDensity`, `retentionReason`, and `onlyInVisual`.
+- Persists the analysis back into SQLite frame records.
+- Advances asset status to `visual_understood`.
+- UI shows visual type, information density, visible text, and visual-only facts per frame.
+- Missing API key returns a clear 409 response and keeps candidate frames intact.
+
 ### Milestone 5: Knowledge Asset
 
 - Transcript/subtitle ingestion.

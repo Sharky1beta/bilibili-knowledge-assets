@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { AnalyzeVisionButton } from "@/components/analyze-vision-button";
 import { ProcessAssetButton } from "@/components/process-asset-button";
 import { StatusPill } from "@/components/status-pill";
 import { getAssetDetail } from "@/lib/db/assets";
@@ -55,6 +56,7 @@ export default async function AssetPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <ProcessAssetButton assetId={asset.id} />
+            <AnalyzeVisionButton assetId={asset.id} />
             <a
               href={asset.url}
               target="_blank"
@@ -90,6 +92,30 @@ export default async function AssetPage({
                       </div>
                       <p className="mt-3 text-sm leading-6">{frame.summary}</p>
                       <p className="mt-3 text-xs leading-5 text-[var(--muted)]">{frame.retentionReason}</p>
+                      <div className="mt-3">
+                        <div className="mb-1 flex items-center justify-between text-xs text-[var(--muted)]">
+                          <span>Information density</span>
+                          <span className="font-mono">{Math.round(frame.informationDensity * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--panel-soft)]">
+                          <div
+                            className="h-full rounded-full bg-[var(--accent)]"
+                            style={{ width: `${Math.round(frame.informationDensity * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      {frame.visibleText.length ? (
+                        <div className="mt-3">
+                          <div className="text-xs font-semibold text-[var(--muted)]">Visible text</div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {frame.visibleText.map((item) => (
+                              <span key={item} className="rounded-md bg-[var(--panel-soft)] px-2 py-1 text-xs text-[var(--muted)]">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-2">
                         {frame.onlyInVisual.map((item) => (
                           <span key={item} className="rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-700">

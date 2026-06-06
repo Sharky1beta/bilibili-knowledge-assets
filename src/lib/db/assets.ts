@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { FrameVisualAnalysis } from "@/lib/ai/gemini";
 import { getDb } from "@/lib/db/client";
 import type { BilibiliMetadata } from "@/lib/bilibili/client";
 import type { ExtractedFrame } from "@/lib/media/ffmpeg";
@@ -217,6 +218,36 @@ export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): F
   transaction();
 
   return getAssetDetail(assetId)!.frames;
+}
+
+export function updateFrameAnalysis(frameId: string, analysis: FrameVisualAnalysis): Frame {
+  getDb()
+    .prepare(
+      `UPDATE frames
+       SET summary = ?,
+           visible_text_json = ?,
+           visual_type = ?,
+           information_density = ?,
+           retention_reason = ?,
+           only_in_visual_json = ?
+       WHERE id = ?`,
+    )
+    .run(
+      analysis.summary,
+      JSON.stringify(analysis.visibleText),
+      analysis.visualType,
+      analysis.informationDensity,
+      analysis.retentionReason,
+      JSON.stringify(analysis.onlyInVisual),
+      frameId,
+    );
+
+  const row = getDb().prepare("SELECT * FROM frames WHERE id = ?").get(frameId) as FrameRow | undefined;
+  if (!row) {
+    throw new Error(`Frame ${frameId} was not found after analysis update.`);
+  }
+
+  return mapFrame(row);
 }
 
 export function createDemoAsset() {
