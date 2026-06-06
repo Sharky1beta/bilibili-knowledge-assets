@@ -81,18 +81,18 @@ export async function generateOutputContent(
     return {
       content: fallbackGeneratedContent(mode, details, prompt),
       usedFallback: true,
-      warning: "GEMINI_API_KEY is not configured; used deterministic output rendering.",
+      warning: fallbackWarning(details, "Gemini API key is not configured."),
     };
   }
 
   try {
     const content = await generateWithGemini(mode, details, prompt);
-    return { content, usedFallback: false, warning: null };
+    return { content, usedFallback: false, warning: assetReadinessWarning(details) };
   } catch (error) {
     return {
       content: fallbackGeneratedContent(mode, details, prompt),
       usedFallback: true,
-      warning: error instanceof Error ? error.message : "Gemini output generation failed.",
+      warning: fallbackWarning(details, error instanceof Error ? error.message : "Gemini output generation failed."),
     };
   }
 }
@@ -517,4 +517,38 @@ function normalizeEvidenceType(value: unknown): EvidenceCardsContent["cards"][nu
 
 function titleCase(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function fallbackWarning(details: AssetDetail[], reason: string) {
+  const readiness = assetReadinessWarning(details);
+  const normalizedReason = normalizeGenerationWarning(reason);
+  return [normalizedReason, readiness].filter(Boolean).join(" ");
+}
+
+function assetReadinessWarning(details: AssetDetail[]) {
+  const incomplete = details.filter((detail) => detail.asset.status !== "asset_built" && detail.asset.status !== "ready");
+  if (!incomplete.length) {
+    return null;
+  }
+
+  const statuses = Array.from(new Set(incomplete.map((detail) => detail.asset.status))).join("/");
+  return `${incomplete.length} selected asset${incomplete.length > 1 ? "s are" : " is"} still at ${statuses} stage; run Analyze vision and Build asset for richer generated outputs.`;
+}
+
+function normalizeGenerationWarning(reason: string) {
+  const compact = reason.trim().toLowerCase();
+
+  if (compact === "fetch failed" || compact.includes("fetch failed") || compact.includes("network")) {
+    return "Gemini output generation was unavailable, so this preview was rendered from saved local frames and knowledge items.";
+  }
+
+  if (compact.includes("api key")) {
+    return "Gemini is not configured, so this preview was rendered from saved local frames and knowledge items.";
+  }
+
+  if (compact.includes("quota") || compact.includes("429")) {
+    return "Gemini quota/rate limit was reached, so this preview was rendered from saved local frames and knowledge items.";
+  }
+
+  return "Gemini output generation fell back to saved local frames and knowledge items.";
 }
