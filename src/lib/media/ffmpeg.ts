@@ -88,7 +88,7 @@ export async function extractAudioSample(options: {
   const outputPath = path.join(assetDir, "audio-sample.mp3");
   const errors: string[] = [];
 
-  for (const url of options.playUrl.urls) {
+  for (const url of audioCandidateUrls(options.playUrl)) {
     try {
       await runFfmpeg([
         "-hide_banner",
@@ -137,7 +137,7 @@ export async function extractFullAudio(options: {
   const outputPath = path.join(assetDir, "audio-full.mp3");
   const errors: string[] = [];
 
-  for (const url of options.playUrl.urls) {
+  for (const url of audioCandidateUrls(options.playUrl)) {
     try {
       await runFfmpeg([
         "-hide_banner",
@@ -253,6 +253,10 @@ async function extractSingleFrame(options: {
   }
 
   throw new Error(`All Bilibili stream mirrors failed for ${options.timestampSec}s. ${errors.at(-1) ?? ""}`);
+}
+
+function audioCandidateUrls(playUrl: BilibiliPlayUrl) {
+  return playUrl.audioUrls.length ? playUrl.audioUrls : playUrl.urls;
 }
 
 async function detectSceneChangeTimestamps(options: {

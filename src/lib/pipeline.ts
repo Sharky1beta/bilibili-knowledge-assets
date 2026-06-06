@@ -32,10 +32,6 @@ export function actionDisabledReason(options: {
 }) {
   const { asset, action, hasFrames, hasAudio, hasKnowledge } = options;
 
-  if (asset.status === "failed") {
-    return "This asset is marked failed. Create or reuse a valid Bilibili asset, or retry the failed prerequisite step from a clean asset.";
-  }
-
   if (!asset.cid || (!asset.bvid && !asset.aid)) {
     return "Metadata is missing. Create the asset from a valid public Bilibili URL before running this step.";
   }
@@ -57,6 +53,10 @@ export function actionDisabledReason(options: {
 
   if (action === "vision" && !hasFrames) {
     return "Extract frames first so Gemini vision has screenshots to analyze.";
+  }
+
+  if (asset.status === "failed" && (action === "vision" || action === "build")) {
+    return "Recover the failed prerequisite first, then retry this step.";
   }
 
   if (action === "asr" && !hasAudio) {

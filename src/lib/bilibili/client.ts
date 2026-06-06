@@ -39,12 +39,19 @@ type BilibiliPlayUrlResponse = {
   code: number;
   message: string;
   data?: {
+    timelength?: number;
     durl?: Array<{
       url: string;
       backup_url?: string[];
     }>;
     dash?: {
       video?: Array<{
+        baseUrl?: string;
+        base_url?: string;
+        backupUrl?: string[];
+        backup_url?: string[];
+      }>;
+      audio?: Array<{
         baseUrl?: string;
         base_url?: string;
         backupUrl?: string[];
@@ -108,6 +115,7 @@ export class BilibiliError extends Error {
 
 export type BilibiliPlayUrl = {
   urls: string[];
+  audioUrls: string[];
   referer: string;
   userAgent: string;
 };
@@ -148,7 +156,7 @@ export async function fetchBilibiliPlayUrl(asset: {
   const params = new URLSearchParams({
     cid: String(asset.cid),
     qn: "16",
-    fnval: "0",
+    fnval: "16",
     fnver: "0",
     fourk: "0",
   });
@@ -183,6 +191,15 @@ export async function fetchBilibiliPlayUrl(asset: {
       ...(item.backup_url ?? []),
     ]) ?? []),
   ].filter((url): url is string => Boolean(url));
+  const audioUrls = [
+    ...(payload.data.dash?.audio?.flatMap((item) => [
+      item.baseUrl,
+      item.base_url,
+      ...(item.backupUrl ?? []),
+      ...(item.backup_url ?? []),
+    ]) ?? []),
+    ...(payload.data.durl?.flatMap((item) => [item.url, ...(item.backup_url ?? [])]) ?? []),
+  ].filter((url): url is string => Boolean(url));
 
   if (!urls.length) {
     throw new BilibiliError("No playable video stream was found for this asset.");
@@ -190,6 +207,7 @@ export async function fetchBilibiliPlayUrl(asset: {
 
   return {
     urls: Array.from(new Set(urls)),
+    audioUrls: Array.from(new Set(audioUrls)),
     referer,
     userAgent: bilibiliUserAgent,
   };
