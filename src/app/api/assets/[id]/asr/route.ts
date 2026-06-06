@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { transcribeAudioWithGemini } from "@/lib/ai/transcript";
 import { getAssetDetail, replaceAssetSegments, updateAssetStatus } from "@/lib/db/assets";
 import { writeTranscriptManifest } from "@/lib/media/artifacts";
-import { extractAudioChunk, mediaSampleLimitSeconds } from "@/lib/media/ffmpeg";
+import { extractAudioChunk, fallbackMediaDurationSeconds } from "@/lib/media/ffmpeg";
 import type { TranscriptSegmentInput } from "@/lib/ai/transcript";
 
 export async function POST(
@@ -30,7 +30,7 @@ export async function POST(
   }
 
   try {
-    const durationSec = Math.max(1, Math.floor(asset.duration ?? mediaSampleLimitSeconds));
+    const durationSec = Math.max(1, Math.floor(asset.duration ?? fallbackMediaDurationSeconds));
     const chunkDurationSec = 60;
     const chunks = buildAudioChunks(durationSec, chunkDurationSec);
     const transcriptSegments: TranscriptSegmentInput[] = [];

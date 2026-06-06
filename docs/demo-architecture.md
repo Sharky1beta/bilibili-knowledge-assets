@@ -198,11 +198,11 @@ public/assets/{assetId}/official-subtitles.json
 public/assets/{assetId}/transcript-manifest.json
 ```
 
-For 24h demo, cap processing:
+For 24h demo, keep the number of retained screenshots capped but cover the whole video timeline:
 
-- Prefer first 10-20 minutes for very long videos.
 - Extract full audio when the user requests transcript/ASR evidence.
-- Sample frames from a capped window for visual evidence.
+- Run frame candidate detection across the full metadata duration when duration is available.
+- Retain only the top candidates so the UI and Gemini calls stay manageable.
 - Keep full metadata so duration and page count remain explicit.
 
 ### Step 5: Candidate Frame Extraction
@@ -560,8 +560,8 @@ Fallback:
 
 Fallback:
 
-- Process capped duration.
-- Show the cap in the UI and README.
+- If metadata duration is missing, use an 8-minute fallback window.
+- If full-video scene detection is too slow or unavailable, keep danmaku hotspots and coverage fallback candidates.
 
 ## 12. Demo Script
 
@@ -616,7 +616,7 @@ Current implementation:
 - Adds `POST /api/assets/:id/process`.
 - Resolves Bilibili stream URLs through `https://api.bilibili.com/x/player/playurl`.
 - Uses `ffmpeg` with Bilibili `Referer` and `User-Agent` headers.
-- Samples up to the first 8 minutes and extracts up to 12 candidate screenshots into `public/assets/{assetId}`.
+- Runs candidate detection across the full video duration and extracts up to 12 candidate screenshots into `public/assets/{assetId}`.
 - Stores candidate frame records in SQLite with timestamp and image path.
 - Advances status through `video_resolved`, `media_downloaded`, and `frames_extracted`.
 - These are candidate frames only. Milestone 4 will add visual scoring/OCR/Gemini understanding to decide which frames are truly worth retaining.

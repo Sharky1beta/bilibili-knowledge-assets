@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { BilibiliPlayUrl } from "@/lib/bilibili/client";
 
-export const mediaSampleLimitSeconds = 8 * 60;
+export const fallbackMediaDurationSeconds = 8 * 60;
 export const maxCandidateFrames = 12;
 
 export type ExtractedFrame = {
@@ -40,7 +40,7 @@ export async function extractCandidateFrames(options: {
   await fs.mkdir(assetDir, { recursive: true });
   await clearExistingFrames(assetDir);
 
-  const sampleDuration = Math.min(options.durationSec ?? mediaSampleLimitSeconds, mediaSampleLimitSeconds);
+  const sampleDuration = Math.max(1, Math.floor(options.durationSec ?? fallbackMediaDurationSeconds));
   const sceneTimestamps = await detectSceneChangeTimestamps({
     playUrl: options.playUrl,
     durationSec: sampleDuration,
@@ -84,7 +84,7 @@ export async function extractAudioSample(options: {
   const assetDir = path.join(process.cwd(), "public", "assets", options.assetId);
   await fs.mkdir(assetDir, { recursive: true });
 
-  const sampleDuration = Math.min(options.durationSec ?? mediaSampleLimitSeconds, mediaSampleLimitSeconds);
+  const sampleDuration = Math.max(1, Math.floor(options.durationSec ?? fallbackMediaDurationSeconds));
   const outputPath = path.join(assetDir, "audio-sample.mp3");
   const errors: string[] = [];
 
@@ -133,7 +133,7 @@ export async function extractFullAudio(options: {
   const assetDir = path.join(process.cwd(), "public", "assets", options.assetId);
   await fs.mkdir(assetDir, { recursive: true });
 
-  const durationSec = Math.max(1, Math.floor(options.durationSec ?? mediaSampleLimitSeconds));
+  const durationSec = Math.max(1, Math.floor(options.durationSec ?? fallbackMediaDurationSeconds));
   const outputPath = path.join(assetDir, "audio-full.mp3");
   const errors: string[] = [];
 
@@ -261,7 +261,7 @@ async function detectSceneChangeTimestamps(options: {
 }): Promise<number[]> {
   const errors: string[] = [];
 
-  for (const url of options.playUrl.urls.slice(0, 2)) {
+  for (const url of options.playUrl.urls.slice(0, 1)) {
     try {
       const output = await runFfmpegWithOutput([
         "-hide_banner",
@@ -275,11 +275,11 @@ async function detectSceneChangeTimestamps(options: {
         String(options.durationSec),
         "-an",
         "-vf",
-        "select='gt(scene,0.32)',showinfo",
+        "fps=1/2,select='gt(scene,0.32)',showinfo",
         "-f",
         "null",
         process.platform === "win32" ? "NUL" : "/dev/null",
-      ]);
+      ], 45_000);
       const timestamps = parseShowinfoTimestamps(output);
       if (timestamps.length) {
         return timestamps;
@@ -353,9 +353,7 @@ function buildCandidateTimestamps(options: {
     });
   }
 
-  return dedupeCandidates(candidates, 5)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxCandidateFrames)
+  return selectTimelineDiverseCandidates(dedupeCandidates(candidates, 5), safeDuration)
     .sort((a, b) => a.timestampSec - b.timestampSec);
 }
 
@@ -381,6 +379,35 @@ function dedupeCandidates(candidates: CandidateTimestamp[], minGapSec: number) {
   }
 
   return selected;
+}
+
+function selectTimelineDiverseCandidates(candidates: CandidateTimestamp[], durationSec: number) {
+  const bucketSize = Math.max(1, durationSec / maxCandidateFrames);
+  const buckets = new Map<number, CandidateTimestamp>();
+
+  for (const candidate of candidates) {
+    const bucket = Math.min(maxCandidateFrames - 1, Math.max(0, Math.floor(candidate.timestampSec / bucketSize)));
+    const existing = buckets.get(bucket);
+    if (!existing || candidate.score > existing.score) {
+      buckets.set(bucket, candidate);
+    }
+  }
+
+  const timelineCandidates = Array.from(buckets.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([, candidate]) => candidate);
+
+  if (timelineCandidates.length >= maxCandidateFrames) {
+    return timelineCandidates.slice(0, maxCandidateFrames);
+  }
+
+  const selectedKeys = new Set(timelineCandidates.map((candidate) => `${candidate.timestampSec}:${candidate.source}`));
+  const fillers = candidates
+    .filter((candidate) => !selectedKeys.has(`${candidate.timestampSec}:${candidate.source}`))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxCandidateFrames - timelineCandidates.length);
+
+  return [...timelineCandidates, ...fillers].slice(0, maxCandidateFrames);
 }
 
 async function clearExistingFrames(assetDir: string) {
@@ -413,11 +440,23 @@ function runFfmpeg(args: string[]) {
   });
 }
 
-function runFfmpegWithOutput(args: string[]) {
+function runFfmpegWithOutput(args: string[], timeoutMs?: number) {
   return new Promise<string>((resolve, reject) => {
     const child = spawn("ffmpeg", args, { windowsHide: true });
     let stdout = "";
     let stderr = "";
+    let settled = false;
+
+    const timeout = timeoutMs
+      ? setTimeout(() => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          child.kill("SIGKILL");
+          reject(new Error(`ffmpeg timed out after ${timeoutMs}ms`));
+        }, timeoutMs)
+      : null;
 
     child.stdout.on("data", (chunk: Buffer) => {
       stdout += chunk.toString("utf8");
@@ -427,8 +466,25 @@ function runFfmpegWithOutput(args: string[]) {
       stderr += chunk.toString("utf8");
     });
 
-    child.on("error", reject);
+    child.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      reject(error);
+    });
     child.on("close", (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
       if (code === 0) {
         resolve(`${stdout}\n${stderr}`);
         return;

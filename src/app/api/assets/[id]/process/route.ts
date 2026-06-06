@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchDanmakuHotspots } from "@/lib/bilibili/danmaku";
 import { fetchBilibiliPlayUrl } from "@/lib/bilibili/client";
 import { getAssetDetail, markAssetFailed, replaceAssetFrames, updateAssetStatus } from "@/lib/db/assets";
-import { extractCandidateFrames, maxCandidateFrames, mediaSampleLimitSeconds } from "@/lib/media/ffmpeg";
+import { extractCandidateFrames, fallbackMediaDurationSeconds, maxCandidateFrames } from "@/lib/media/ffmpeg";
 
 export async function POST(
   _request: Request,
@@ -30,7 +30,7 @@ export async function POST(
     const danmakuHotspots = asset.cid
       ? await fetchDanmakuHotspots({
           cid: asset.cid,
-          durationSec: Math.min(asset.duration ?? mediaSampleLimitSeconds, mediaSampleLimitSeconds),
+          durationSec: asset.duration ?? fallbackMediaDurationSeconds,
         }).catch(() => [])
       : [];
 
@@ -49,7 +49,8 @@ export async function POST(
       asset: updatedAsset,
       frames,
       limits: {
-        mediaSampleLimitSeconds,
+        candidateDurationSeconds: asset.duration ?? fallbackMediaDurationSeconds,
+        fallbackMediaDurationSeconds,
         maxCandidateFrames,
         danmakuHotspots: danmakuHotspots.length,
       },
