@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2, ScanSearch } from "lucide-react";
 
-export function ProcessAssetButton({ assetId }: { assetId: string }) {
+export function ProcessAssetButton({ assetId, disabledReason }: { assetId: string; disabledReason?: string | null }) {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +34,9 @@ export function ProcessAssetButton({ assetId }: { assetId: string }) {
       <button
         type="button"
         onClick={processAsset}
-        disabled={isProcessing}
+        disabled={isProcessing || Boolean(disabledReason)}
         translate="no"
+        title={disabledReason ?? undefined}
         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:bg-[#195f48] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span aria-hidden={isProcessing} className={isProcessing ? "hidden" : "inline-flex"}>
@@ -47,6 +48,7 @@ export function ProcessAssetButton({ assetId }: { assetId: string }) {
         <span className={isProcessing ? "hidden" : "inline"}>Extract frames</span>
         <span className={isProcessing ? "inline" : "hidden"}>Extracting frames...</span>
       </button>
+      {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
     </div>
   );

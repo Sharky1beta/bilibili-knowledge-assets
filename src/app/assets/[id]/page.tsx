@@ -11,6 +11,7 @@ import { StatusPill } from "@/components/status-pill";
 import { TranscribeAudioButton } from "@/components/transcribe-audio-button";
 import { getAssetDetail } from "@/lib/db/assets";
 import { getAudioArtifactInfo, readTranscriptManifest } from "@/lib/media/artifacts";
+import { actionDisabledReason, getNextPipelineStep, recoveryAdvice } from "@/lib/pipeline";
 
 export default async function AssetPage({
   params,
@@ -30,6 +31,15 @@ export default async function AssetPage({
   const { asset, frames, segments, knowledgeItems } = detail;
   const audioArtifact = await getAudioArtifactInfo(asset.id);
   const transcriptManifest = await readTranscriptManifest(asset.id);
+  const pipelineContext = {
+    asset,
+    hasFrames: frames.length > 0,
+    hasAudio: Boolean(audioArtifact),
+    hasTranscript: segments.length > 0,
+    hasKnowledge: knowledgeItems.length > 0,
+  };
+  const nextStep = getNextPipelineStep(pipelineContext);
+  const advice = recoveryAdvice(asset.errorMessage);
 
   return (
     <div className="px-6 py-6 lg:px-10">
@@ -71,12 +81,30 @@ export default async function AssetPage({
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            <ProcessAssetButton assetId={asset.id} />
-            <AnalyzeVisionButton assetId={asset.id} />
-            <ExtractAudioButton assetId={asset.id} />
-            <ExtractTranscriptButton assetId={asset.id} />
-            <TranscribeAudioButton assetId={asset.id} />
-            <BuildKnowledgeButton assetId={asset.id} />
+            <ProcessAssetButton
+              assetId={asset.id}
+              disabledReason={actionDisabledReason({ ...pipelineContext, action: "process" })}
+            />
+            <AnalyzeVisionButton
+              assetId={asset.id}
+              disabledReason={actionDisabledReason({ ...pipelineContext, action: "vision" })}
+            />
+            <ExtractAudioButton
+              assetId={asset.id}
+              disabledReason={actionDisabledReason({ ...pipelineContext, action: "audio" })}
+            />
+            <ExtractTranscriptButton
+              assetId={asset.id}
+              disabledReason={actionDisabledReason({ ...pipelineContext, action: "subtitles" })}
+            />
+            <TranscribeAudioButton
+              assetId={asset.id}
+              disabledReason={actionDisabledReason({ ...pipelineContext, action: "asr" })}
+            />
+            <BuildKnowledgeButton
+              assetId={asset.id}
+              disabledReason={actionDisabledReason({ ...pipelineContext, action: "build" })}
+            />
             <a
               href={asset.url}
               target="_blank"
@@ -176,6 +204,15 @@ export default async function AssetPage({
         </section>
 
         <aside className="grid content-start gap-6">
+          <div className="rounded-lg border border-[var(--line)] bg-white p-5">
+            <h2 className="text-base font-semibold">Recommended next step</h2>
+            <p className="mt-3 text-sm font-semibold text-[var(--accent)]">{nextStep.title}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{nextStep.body}</p>
+            {advice ? (
+              <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-800">{advice}</p>
+            ) : null}
+          </div>
+
           <div className="rounded-lg border border-[var(--line)] bg-white p-5">
             <h2 className="text-base font-semibold">Knowledge items</h2>
             <div className="mt-4 grid gap-3">

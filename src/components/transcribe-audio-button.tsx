@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2, MicVocal } from "lucide-react";
 
-export function TranscribeAudioButton({ assetId }: { assetId: string }) {
+export function TranscribeAudioButton({ assetId, disabledReason }: { assetId: string; disabledReason?: string | null }) {
   const router = useRouter();
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +34,9 @@ export function TranscribeAudioButton({ assetId }: { assetId: string }) {
       <button
         type="button"
         onClick={transcribeAudio}
-        disabled={isTranscribing}
+        disabled={isTranscribing || Boolean(disabledReason)}
         translate="no"
+        title={disabledReason ?? undefined}
         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#9333ea] px-4 text-sm font-semibold text-white transition hover:bg-[#7e22ce] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span aria-hidden={isTranscribing} className={isTranscribing ? "hidden" : "inline-flex"}>
@@ -47,6 +48,7 @@ export function TranscribeAudioButton({ assetId }: { assetId: string }) {
         <span className={isTranscribing ? "hidden" : "inline"}>ASR from full audio</span>
         <span className={isTranscribing ? "inline" : "hidden"}>Transcribing audio...</span>
       </button>
+      {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
     </div>
   );

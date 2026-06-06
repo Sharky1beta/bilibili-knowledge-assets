@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Captions, Loader2 } from "lucide-react";
 
-export function ExtractTranscriptButton({ assetId }: { assetId: string }) {
+export function ExtractTranscriptButton({ assetId, disabledReason }: { assetId: string; disabledReason?: string | null }) {
   const router = useRouter();
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +34,9 @@ export function ExtractTranscriptButton({ assetId }: { assetId: string }) {
       <button
         type="button"
         onClick={extractTranscript}
-        disabled={isExtracting}
+        disabled={isExtracting || Boolean(disabledReason)}
         translate="no"
+        title={disabledReason ?? undefined}
         className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0f766e] px-4 text-sm font-semibold text-white transition hover:bg-[#115e59] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span aria-hidden={isExtracting} className={isExtracting ? "hidden" : "inline-flex"}>
@@ -47,6 +48,7 @@ export function ExtractTranscriptButton({ assetId }: { assetId: string }) {
         <span className={isExtracting ? "hidden" : "inline"}>Fetch official subtitles</span>
         <span className={isExtracting ? "inline" : "hidden"}>Fetching subtitles...</span>
       </button>
+      {disabledReason ? <p className="mt-2 max-w-sm text-xs text-[var(--muted)]">{disabledReason}</p> : null}
       {error ? <p className="mt-2 max-w-sm text-sm text-red-700">{error}</p> : null}
     </div>
   );
