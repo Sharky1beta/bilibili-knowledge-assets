@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#f7f8f5"/>
+  <text x="76" y="94" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#18201d">Reusable asset memory</text>
+  <g font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#18201d">
+    <rect x="76" y="180" width="130" height="74" rx="14" fill="#ffffff" stroke="#cbd8d0"/>
+    <text x="119" y="225">URL</text>
+    <rect x="256" y="180" width="130" height="74" rx="14" fill="#ffffff" stroke="#cbd8d0"/>
+    <text x="295" y="225">frames</text>
+    <rect x="436" y="180" width="150" height="74" rx="14" fill="#ffffff" stroke="#cbd8d0"/>
+    <text x="465" y="225">visual JSON</text>
+    <rect x="636" y="180" width="170" height="74" rx="14" fill="#ffffff" stroke="#cbd8d0"/>
+    <text x="670" y="225">SQLite memory</text>
+    <rect x="636" y="332" width="170" height="74" rx="14" fill="#dcfce7" stroke="#86efac"/>
+    <text x="688" y="377">outputs</text>
+  </g>
+  <g stroke="#22765a" stroke-width="5" fill="none" stroke-linecap="round">
+    <path d="M206 217 H256"/>
+    <path d="M386 217 H436"/>
+    <path d="M586 217 H636"/>
+    <path d="M721 254 V332"/>
+  </g>
+  <g fill="#22765a">
+    <path d="M252 207 L268 217 L252 227Z"/>
+    <path d="M432 207 L448 217 L432 227Z"/>
+    <path d="M632 207 L648 217 L632 227Z"/>
+    <path d="M711 328 L721 344 L731 328Z"/>
+  </g>
+</svg>
