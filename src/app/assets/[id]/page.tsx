@@ -46,7 +46,7 @@ export default async function AssetPage({
     <div className="px-6 py-6 lg:px-10">
       <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--foreground)]">
         <ArrowLeft size={16} />
-        返回资产列表
+        return
       </Link>
 
       {query.reused === "1" ? (
