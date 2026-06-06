@@ -81,7 +81,7 @@ export default function HomePage() {
                       href={`/assets/${asset.id}`}
                       className="group inline-flex items-center text-sm font-semibold text-[var(--accent)]"
                     >
-                      打开
+                      Open
                       <ArrowRight size={16} className="ml-2 transition group-hover:translate-x-0.5" />
                     </Link>
                   </div>
