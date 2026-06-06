@@ -599,6 +599,10 @@ Current implementation:
 - Stores `aid`, `bvid`, first `cid`, title, description, UP name, duration, cover URL, tags, and page count.
 - Advances asset status from `created` to `metadata_fetched`.
 - Keeps a failed asset with a visible error message when metadata fetching fails.
+- Before creating a new row, checks existing assets by parsed `bvid`/`aid`.
+- After metadata fetch, checks source identity by `bvid + cid` or `aid + cid`.
+- If the same source already exists, returns the existing `assetId` with `reused: true` and does not insert a duplicate row.
+- The asset detail page shows a reuse banner when a duplicate URL resolves to an existing saved asset.
 
 ### Milestone 3: Media + Frames
 

@@ -14,10 +14,13 @@ import { getAudioArtifactInfo, readTranscriptManifest } from "@/lib/media/artifa
 
 export default async function AssetPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ reused?: string }>;
 }) {
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
   const detail = getAssetDetail(id);
 
   if (!detail) {
@@ -34,6 +37,12 @@ export default async function AssetPage({
         <ArrowLeft size={16} />
         Back to assets
       </Link>
+
+      {query.reused === "1" ? (
+        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          This Bilibili source already exists. Reusing the saved asset without reprocessing.
+        </p>
+      ) : null}
 
       <header className="mt-5 rounded-lg border border-[var(--line)] bg-white p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

@@ -21,7 +21,7 @@ export function UrlIntake() {
       body: JSON.stringify({ url }),
     });
 
-    const payload = (await response.json()) as { assetId?: string; error?: string };
+    const payload = (await response.json()) as { assetId?: string; error?: string; reused?: boolean };
     setIsSubmitting(false);
 
     if (!response.ok || !payload.assetId) {
@@ -29,7 +29,7 @@ export function UrlIntake() {
       return;
     }
 
-    router.push(`/assets/${payload.assetId}`);
+    router.push(`/assets/${payload.assetId}${payload.reused ? "?reused=1" : ""}`);
     router.refresh();
   }
 

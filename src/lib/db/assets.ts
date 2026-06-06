@@ -87,6 +87,58 @@ export function listAssets(): Asset[] {
   return rows.map(mapAsset);
 }
 
+export function findAssetByBvid(bvid: string): Asset | null {
+  const row = getDb()
+    .prepare("SELECT * FROM assets WHERE bvid = ? ORDER BY updated_at DESC LIMIT 1")
+    .get(bvid) as AssetRow | undefined;
+
+  return row ? mapAsset(row) : null;
+}
+
+export function findAssetByAid(aid: number): Asset | null {
+  const row = getDb()
+    .prepare("SELECT * FROM assets WHERE aid = ? ORDER BY updated_at DESC LIMIT 1")
+    .get(aid) as AssetRow | undefined;
+
+  return row ? mapAsset(row) : null;
+}
+
+export function findAssetBySourceIdentity(input: {
+  bvid: string | null;
+  aid: number | null;
+  cid: number | null;
+}): Asset | null {
+  if (input.bvid && input.cid) {
+    const row = getDb()
+      .prepare("SELECT * FROM assets WHERE bvid = ? AND cid = ? ORDER BY updated_at DESC LIMIT 1")
+      .get(input.bvid, input.cid) as AssetRow | undefined;
+
+    if (row) {
+      return mapAsset(row);
+    }
+  }
+
+  if (input.aid && input.cid) {
+    const row = getDb()
+      .prepare("SELECT * FROM assets WHERE aid = ? AND cid = ? ORDER BY updated_at DESC LIMIT 1")
+      .get(input.aid, input.cid) as AssetRow | undefined;
+
+    if (row) {
+      return mapAsset(row);
+    }
+  }
+
+  if (input.bvid) {
+    return findAssetByBvid(input.bvid);
+  }
+
+  if (input.aid) {
+    return findAssetByAid(input.aid);
+  }
+
+  return null;
+}
+
 export function getAssetDetail(id: string): AssetDetail | null {
   const assetRow = getDb().prepare("SELECT * FROM assets WHERE id = ?").get(id) as
     | AssetRow
