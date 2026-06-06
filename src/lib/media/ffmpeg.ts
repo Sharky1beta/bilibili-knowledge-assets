@@ -51,18 +51,24 @@ export async function extractCandidateFrames(options: {
     danmakuHotspots: options.danmakuHotspots ?? [],
   });
   const frames: ExtractedFrame[] = [];
+  const errors: string[] = [];
 
   for (const candidate of timestamps) {
     const filename = `frame-${String(Math.round(candidate.timestampSec)).padStart(5, "0")}.jpg`;
     const absolutePath = path.join(assetDir, filename);
 
-    await extractSingleFrame({
-      urls: options.playUrl.urls,
-      referer: options.playUrl.referer,
-      userAgent: options.playUrl.userAgent,
-      timestampSec: candidate.timestampSec,
-      outputPath: absolutePath,
-    });
+    try {
+      await extractSingleFrame({
+        urls: options.playUrl.urls,
+        referer: options.playUrl.referer,
+        userAgent: options.playUrl.userAgent,
+        timestampSec: candidate.timestampSec,
+        outputPath: absolutePath,
+      });
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+      continue;
+    }
 
     frames.push({
       timestampSec: candidate.timestampSec,
@@ -71,6 +77,10 @@ export async function extractCandidateFrames(options: {
       candidateSource: candidate.source,
       candidateReason: candidate.reason,
     });
+  }
+
+  if (!frames.length) {
+    throw new Error(`关键帧抽取失败：B 站视频流在当前网络环境下无法被 ffmpeg 截图。可以稍后重试，或换一个公开可访问的视频。${errors.at(-1) ? ` 详情：${errors.at(-1)}` : ""}`);
   }
 
   return frames;
@@ -234,10 +244,12 @@ async function extractSingleFrame(options: {
         "-y",
         "-headers",
         `Referer: ${options.referer}\r\nUser-Agent: ${options.userAgent}\r\n`,
-        "-i",
-        url,
         "-ss",
         String(options.timestampSec),
+        "-i",
+        url,
+        "-an",
+        "-sn",
         "-frames:v",
         "1",
         "-vf",
@@ -252,7 +264,7 @@ async function extractSingleFrame(options: {
     }
   }
 
-  throw new Error(`All Bilibili stream mirrors failed for ${options.timestampSec}s. ${errors.at(-1) ?? ""}`);
+  throw new Error(`B 站视频流在 ${options.timestampSec}s 附近截图失败。${errors.at(-1) ?? ""}`);
 }
 
 function audioCandidateUrls(playUrl: BilibiliPlayUrl) {
@@ -318,10 +330,11 @@ function buildCandidateTimestamps(options: {
   danmakuHotspots: Array<{ timestampSec: number; heat: number; count: number }>;
 }) {
   const safeDuration = Math.max(1, Math.floor(options.durationSec));
+  const maxTimestamp = Math.max(1, safeDuration - 3);
   const candidates: CandidateTimestamp[] = [];
 
   for (const [index, timestampSec] of options.sceneTimestamps.entries()) {
-    if (timestampSec > safeDuration) {
+    if (timestampSec > maxTimestamp) {
       continue;
     }
 
@@ -334,7 +347,7 @@ function buildCandidateTimestamps(options: {
   }
 
   for (const hotspot of options.danmakuHotspots) {
-    if (hotspot.timestampSec > safeDuration) {
+    if (hotspot.timestampSec > maxTimestamp) {
       continue;
     }
 
@@ -350,7 +363,7 @@ function buildCandidateTimestamps(options: {
   const fallbackGap = safeDuration / (fallbackCount + 1);
   for (let index = 0; index < fallbackCount; index += 1) {
     candidates.push({
-      timestampSec: Math.max(1, Math.round(fallbackGap * (index + 1))),
+      timestampSec: Math.min(maxTimestamp, Math.max(1, Math.round(fallbackGap * (index + 1)))),
       source: "coverage_fallback",
       reason: "Coverage fallback candidate used only to avoid blind spots when scene/danmaku signals are sparse.",
       score: 20 - index,

@@ -69,7 +69,9 @@ export default async function AssetPage({
               </div>
             ) : null}
             {asset.errorMessage ? (
-              <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{asset.errorMessage}</p>
+              <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                {formatAssetError(asset.errorMessage)}
+              </p>
             ) : null}
           </div>
           <div className="w-full rounded-lg border border-[var(--line)] bg-[var(--panel-soft)] p-3 lg:w-[560px]">
@@ -431,4 +433,18 @@ function formatStatusStep(status: AssetStatus) {
   };
 
   return labels[status];
+}
+
+function formatAssetError(message: string) {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("bilibili stream") ||
+    lower.includes("视频流") ||
+    lower.includes("mjpeg") ||
+    lower.includes("nothing was written")
+  ) {
+    return "关键帧抽取失败：B 站视频流在当前网络环境下没有成功截图。通常是播放流链接过期、防盗链限制、末尾时间点无完整画面包，或当前地区访问不稳定。请重新点击“抽取关键帧”重试。";
+  }
+
+  return message.length > 220 ? `${message.slice(0, 220)}...` : message;
 }
