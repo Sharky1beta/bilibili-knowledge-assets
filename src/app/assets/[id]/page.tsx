@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ProcessAssetButton } from "@/components/process-asset-button";
 import { StatusPill } from "@/components/status-pill";
 import { getAssetDetail } from "@/lib/db/assets";
 
@@ -52,15 +53,18 @@ export default async function AssetPage({
               <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{asset.errorMessage}</p>
             ) : null}
           </div>
-          <a
-            href={asset.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--line)] px-4 text-sm font-semibold"
-          >
-            Source
-            <ExternalLink size={15} />
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <ProcessAssetButton assetId={asset.id} />
+            <a
+              href={asset.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--line)] px-4 text-sm font-semibold"
+            >
+              Source
+              <ExternalLink size={15} />
+            </a>
+          </div>
         </div>
       </header>
 
@@ -168,6 +172,7 @@ export default async function AssetPage({
                 "created",
                 "metadata_fetched",
                 "video_resolved",
+                "media_downloaded",
                 "frames_extracted",
                 "visual_understood",
                 "asset_built",

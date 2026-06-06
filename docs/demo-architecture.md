@@ -577,6 +577,16 @@ Current implementation:
 - Extract candidate frames.
 - Store frame records and screenshots.
 
+Current implementation:
+
+- Adds `POST /api/assets/:id/process`.
+- Resolves Bilibili stream URLs through `https://api.bilibili.com/x/player/playurl`.
+- Uses `ffmpeg` with Bilibili `Referer` and `User-Agent` headers.
+- Samples up to the first 8 minutes and extracts up to 12 candidate screenshots into `public/assets/{assetId}`.
+- Stores candidate frame records in SQLite with timestamp and image path.
+- Advances status through `video_resolved`, `media_downloaded`, and `frames_extracted`.
+- These are candidate frames only. Milestone 4 will add visual scoring/OCR/Gemini understanding to decide which frames are truly worth retaining.
+
 ### Milestone 4: Visual Understanding
 
 - Gemini vision call.

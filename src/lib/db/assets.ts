@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/db/client";
 import type { BilibiliMetadata } from "@/lib/bilibili/client";
+import type { ExtractedFrame } from "@/lib/media/ffmpeg";
 import type { Asset, Frame, GeneratedOutput, KnowledgeItem, OutputMode, Segment } from "@/lib/types";
 
 type AssetRow = {
@@ -173,6 +174,49 @@ export function markAssetFailed(assetId: string, errorMessage: string): Asset {
     .run("failed", errorMessage, now, assetId);
 
   return getAssetDetail(assetId)!.asset;
+}
+
+export function updateAssetStatus(assetId: string, status: Asset["status"], errorMessage: string | null = null): Asset {
+  const now = new Date().toISOString();
+
+  getDb()
+    .prepare("UPDATE assets SET status = ?, error_message = ?, updated_at = ? WHERE id = ?")
+    .run(status, errorMessage, now, assetId);
+
+  return getAssetDetail(assetId)!.asset;
+}
+
+export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): Frame[] {
+  const database = getDb();
+  const deleteFrames = database.prepare("DELETE FROM frames WHERE asset_id = ?");
+  const insertFrame = database.prepare(
+    `INSERT INTO frames (
+      id, asset_id, timestamp_sec, image_path, summary, visible_text_json,
+      visual_type, information_density, retention_reason, only_in_visual_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+
+  const transaction = database.transaction(() => {
+    deleteFrames.run(assetId);
+    for (const frame of frames) {
+      insertFrame.run(
+        `frame_${randomUUID()}`,
+        assetId,
+        frame.timestampSec,
+        frame.publicPath,
+        "Candidate frame awaiting visual understanding.",
+        JSON.stringify([]),
+        "candidate",
+        0.3,
+        "Selected as a time-spread candidate for Milestone 3; Milestone 4 will score information density.",
+        JSON.stringify([]),
+      );
+    }
+  });
+
+  transaction();
+
+  return getAssetDetail(assetId)!.frames;
 }
 
 export function createDemoAsset() {

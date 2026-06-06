@@ -5,6 +5,7 @@ build/
 dist/
 
 data/
+public/assets/
 
 .env
 .env.local

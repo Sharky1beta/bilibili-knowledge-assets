@@ -35,6 +35,25 @@ type BilibiliTagsResponse = {
   }>;
 };
 
+type BilibiliPlayUrlResponse = {
+  code: number;
+  message: string;
+  data?: {
+    durl?: Array<{
+      url: string;
+      backup_url?: string[];
+    }>;
+    dash?: {
+      video?: Array<{
+        baseUrl?: string;
+        base_url?: string;
+        backupUrl?: string[];
+        backup_url?: string[];
+      }>;
+    };
+  };
+};
+
 export type BilibiliMetadata = {
   aid: number;
   bvid: string;
@@ -65,6 +84,12 @@ export class BilibiliError extends Error {
   }
 }
 
+export type BilibiliPlayUrl = {
+  urls: string[];
+  referer: string;
+  userAgent: string;
+};
+
 export async function fetchBilibiliMetadata(input: string): Promise<BilibiliMetadata> {
   const parsed = parseBilibiliInput(input);
 
@@ -78,6 +103,66 @@ export async function fetchBilibiliMetadata(input: string): Promise<BilibiliMeta
   return {
     ...view,
     tags,
+  };
+}
+
+export async function fetchBilibiliPlayUrl(asset: {
+  aid: number | null;
+  bvid: string | null;
+  cid: number | null;
+  url: string;
+}): Promise<BilibiliPlayUrl> {
+  if (!asset.cid || (!asset.bvid && !asset.aid)) {
+    throw new BilibiliError("Cannot resolve play URL before metadata provides cid and bvid/aid.");
+  }
+
+  const params = new URLSearchParams({
+    cid: String(asset.cid),
+    qn: "16",
+    fnval: "0",
+    fnver: "0",
+    fourk: "0",
+  });
+
+  if (asset.bvid) {
+    params.set("bvid", asset.bvid);
+  } else if (asset.aid) {
+    params.set("avid", String(asset.aid));
+  }
+
+  const referer = asset.bvid ? `https://www.bilibili.com/video/${asset.bvid}` : asset.url;
+  const response = await fetch(`https://api.bilibili.com/x/player/playurl?${params.toString()}`, {
+    headers: bilibiliHeaders(referer),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new BilibiliError(`Bilibili playurl request failed with HTTP ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as BilibiliPlayUrlResponse;
+  if (payload.code !== 0 || !payload.data) {
+    throw new BilibiliError(payload.message || "Bilibili playurl request returned no data.", payload.code);
+  }
+
+  const urls = [
+    ...(payload.data.durl?.flatMap((item) => [item.url, ...(item.backup_url ?? [])]) ?? []),
+    ...(payload.data.dash?.video?.flatMap((item) => [
+      item.baseUrl,
+      item.base_url,
+      ...(item.backupUrl ?? []),
+      ...(item.backup_url ?? []),
+    ]) ?? []),
+  ].filter((url): url is string => Boolean(url));
+
+  if (!urls.length) {
+    throw new BilibiliError("No playable video stream was found for this asset.");
+  }
+
+  return {
+    urls: Array.from(new Set(urls)),
+    referer,
+    userAgent: bilibiliUserAgent,
   };
 }
 
@@ -151,9 +236,11 @@ async function fetchTags(bvid: string): Promise<string[]> {
 
 function bilibiliHeaders(referer: string) {
   return {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36",
+    "User-Agent": bilibiliUserAgent,
     Referer: referer,
     Accept: "application/json,text/plain,*/*",
   };
 }
+
+const bilibiliUserAgent =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36";
