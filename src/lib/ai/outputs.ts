@@ -323,10 +323,10 @@ function normalizeGeneratedContent(
     return {
       mode,
       title: stringOrFallback(raw.title, fallback.title),
-      cards: arrayOfRecords(raw.cards).map((card) => {
+      cards: arrayOfRecords(raw.cards).map((card, index) => {
         const citations = citationsForKeys(details, stringArray(card.citationKeys));
         const imageCitation = citationForKey(details, stringOrNull(card.imageKey));
-        const primaryCitation = ensureCitations(details, imageCitation ? [imageCitation, ...citations] : citations);
+        const primaryCitation = ensureCitations(details, imageCitation ? [imageCitation, ...citations] : citations, index);
         const displayCitation = firstFrameCitation(primaryCitation);
         return {
           claim: stringOrFallback(card.claim, "Evidence card"),
@@ -362,25 +362,11 @@ function normalizeGeneratedContent(
     mode,
     title: stringOrFallback(raw.title, fallback.title),
     takeaway: stringOrFallback(raw.takeaway, fallback.takeaway),
-    keyFacts: arrayOfRecords(raw.keyFacts).map((fact) => ({
+    keyFacts: arrayOfRecords(raw.keyFacts).map((fact, index) => ({
       text: stringOrFallback(fact.text, "Key fact"),
-      citations: ensureCitations(details, citationsForKeys(details, stringArray(fact.citationKeys))),
+      citations: ensureCitations(details, citationsForKeys(details, stringArray(fact.citationKeys)), index),
     })).filter((fact) => fact.text).slice(0, 10),
-    sections: arrayOfRecords(raw.sections).map((section) => {
-      const imageCitation = citationForKey(details, stringOrNull(section.imageKey));
-      const citations = ensureCitations(details, dedupeCitations([
-        ...(imageCitation ? [imageCitation] : []),
-        ...citationsForKeys(details, stringArray(section.citationKeys)),
-      ]));
-      const displayCitation = firstFrameCitation(citations);
-      return {
-        heading: stringOrFallback(section.heading, "Illustrated section"),
-        summary: stringOrFallback(section.summary, "This section is grounded in stored visual evidence."),
-        imagePath: displayCitation?.imagePath ?? null,
-        timestampSec: displayCitation?.timestampSec ?? null,
-        citations,
-      };
-    }).slice(0, 8),
+    sections: normalizeSummarySections(raw.sections, details),
     actionSuggestions: stringArray(raw.actionSuggestions).slice(0, 6),
   };
 }
@@ -400,6 +386,55 @@ function parseJson(text: string) {
     }
     throw new Error("Gemini returned invalid JSON for output generation.");
   }
+}
+
+function normalizeSummarySections(value: unknown, details: AssetDetail[]): IllustratedSummaryContent["sections"] {
+  const usedImages = new Set<string>();
+
+  return arrayOfRecords(value).map((section, index) => {
+    const imageCitation = citationForKey(details, stringOrNull(section.imageKey));
+    const citations = ensureCitations(details, dedupeCitations([
+      ...(imageCitation ? [imageCitation] : []),
+      ...citationsForKeys(details, stringArray(section.citationKeys)),
+    ]), index);
+    const displayCitation = pickDisplayFrameCitation(details, citations, index, usedImages);
+
+    if (displayCitation?.imagePath) {
+      usedImages.add(displayCitation.imagePath);
+    }
+
+    return {
+      heading: stringOrFallback(section.heading, "Illustrated section"),
+      summary: stringOrFallback(section.summary, "This section is grounded in stored visual evidence."),
+      imagePath: displayCitation?.imagePath ?? null,
+      timestampSec: displayCitation?.timestampSec ?? null,
+      citations: displayCitation && !citations.some((citation) => citation.sourceId === displayCitation.sourceId)
+        ? dedupeCitations([displayCitation, ...citations])
+        : citations,
+    };
+  }).slice(0, 8);
+}
+
+function pickDisplayFrameCitation(
+  details: AssetDetail[],
+  citations: Citation[],
+  fallbackIndex: number,
+  usedImages: Set<string>,
+) {
+  const citedFrame = firstFrameCitation(citations);
+  if (citedFrame?.imagePath && !usedImages.has(citedFrame.imagePath)) {
+    return citedFrame;
+  }
+
+  const frames = details.flatMap((detail) =>
+    rankedFrames(detail)
+      .slice(0, 12)
+      .map((frame) => frameCitation(detail, frame.id))
+      .filter(Boolean),
+  ) as Citation[];
+
+  const freshFrame = rotateFrom(frames, fallbackIndex).find((citation) => citation.imagePath && !usedImages.has(citation.imagePath));
+  return freshFrame ?? citedFrame ?? frames[0] ?? null;
 }
 
 function rankedFrames(detail: AssetDetail) {
@@ -472,20 +507,37 @@ function dedupeCitations(citations: Citation[]) {
   });
 }
 
-function ensureCitations(details: AssetDetail[], citations: Citation[]) {
+function ensureCitations(details: AssetDetail[], citations: Citation[], fallbackIndex = 0) {
   if (citations.length) {
     return dedupeCitations(citations);
   }
 
-  const fallback = details
-    .map((detail) => detail.frames[0] ? frameCitation(detail, detail.frames[0].id) : detail.segments[0] ? segmentCitation(detail, detail.segments[0].id) : null)
-    .find(Boolean);
+  const frameFallbacks = details.flatMap((detail) =>
+    rankedFrames(detail)
+      .slice(0, 12)
+      .map((frame) => frameCitation(detail, frame.id))
+      .filter(Boolean),
+  ) as Citation[];
+
+  const fallback =
+    frameFallbacks[fallbackIndex % Math.max(frameFallbacks.length, 1)] ??
+    details
+      .map((detail) => detail.segments[0] ? segmentCitation(detail, detail.segments[0].id) : null)
+      .find(Boolean);
 
   return fallback ? [fallback] : [];
 }
 
 function firstFrameCitation(citations: Citation[]) {
   return citations.find((citation) => citation.kind === "frame" && citation.imagePath);
+}
+
+function rotateFrom<T>(items: T[], index: number) {
+  if (!items.length) {
+    return [];
+  }
+  const start = index % items.length;
+  return [...items.slice(start), ...items.slice(0, start)];
 }
 
 function fallbackFactRows(details: AssetDetail[]) {
