@@ -128,21 +128,22 @@ function SourceAssetOption({
   const progress = statusProgress(asset.status);
 
   return (
-    <label className="flex cursor-pointer gap-3 rounded-lg border border-[var(--line)] p-3 text-sm">
+    <label className="grid min-w-0 cursor-pointer grid-cols-[18px_minmax(0,1fr)] gap-3 overflow-hidden rounded-lg border border-[var(--line)] p-3 text-sm">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
+        className="mt-1"
       />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{asset.title}</span>
-        <span className="mt-2 flex items-center justify-between gap-3">
+      <span className="block min-w-0">
+        <span className="block max-w-full truncate font-medium">{asset.title}</span>
+        <span className="mt-2 flex min-w-0 items-center justify-between gap-3">
           <StatusPill status={asset.status} />
-          <span className="font-mono text-[11px] text-[var(--muted)]">
+          <span className="shrink-0 font-mono text-[11px] text-[var(--muted)]">
             {progress.current}/{statusSteps.length}
           </span>
         </span>
-        <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-[var(--panel-soft)]">
+        <span className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--panel-soft)]">
           <span
             className="block h-full rounded-full bg-[var(--accent)]"
             style={{ width: `${progress.percent}%` }}
