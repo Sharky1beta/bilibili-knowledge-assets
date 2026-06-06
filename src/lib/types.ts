@@ -12,13 +12,17 @@ export type AssetStatus =
 
 export type Asset = {
   id: string;
+  aid: number | null;
   bvid: string | null;
+  cid: number | null;
   url: string;
   title: string;
   description: string | null;
   ownerName: string | null;
   duration: number | null;
   coverUrl: string | null;
+  tags: string[];
+  pageCount: number | null;
   status: AssetStatus;
   errorMessage: string | null;
   createdAt: string;

@@ -561,6 +561,15 @@ The final recording should show:
 - Store asset.
 - Show status and errors.
 
+Current implementation:
+
+- Parses BV ids, av ids, and regular Bilibili video URLs.
+- Calls `https://api.bilibili.com/x/web-interface/view`.
+- Best-effort calls `https://api.bilibili.com/x/tag/archive/tags`.
+- Stores `aid`, `bvid`, first `cid`, title, description, UP name, duration, cover URL, tags, and page count.
+- Advances asset status from `created` to `metadata_fetched`.
+- Keeps a failed asset with a visible error message when metadata fetching fails.
+
 ### Milestone 3: Media + Frames
 
 - Resolve stream.

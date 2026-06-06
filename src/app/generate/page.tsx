@@ -1,6 +1,8 @@
 import { GenerateWorkbench } from "@/components/generate-workbench";
 import { createDemoAsset, listAssets } from "@/lib/db/assets";
 
+export const dynamic = "force-dynamic";
+
 export default function GeneratePage() {
   createDemoAsset();
   const assets = listAssets();

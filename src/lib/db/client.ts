@@ -23,13 +23,17 @@ function ensureSchema(database: Database.Database) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
+      aid INTEGER,
       bvid TEXT,
+      cid INTEGER,
       url TEXT NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
       owner_name TEXT,
       duration INTEGER,
       cover_url TEXT,
+      tags_json TEXT NOT NULL DEFAULT '[]',
+      page_count INTEGER,
       status TEXT NOT NULL,
       error_message TEXT,
       created_at TEXT NOT NULL,
@@ -84,4 +88,18 @@ function ensureSchema(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_frames_asset_id ON frames(asset_id);
     CREATE INDEX IF NOT EXISTS idx_knowledge_asset_id ON knowledge_items(asset_id);
   `);
+
+  ensureColumn(database, "assets", "aid", "INTEGER");
+  ensureColumn(database, "assets", "cid", "INTEGER");
+  ensureColumn(database, "assets", "tags_json", "TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(database, "assets", "page_count", "INTEGER");
+}
+
+function ensureColumn(database: Database.Database, table: string, column: string, definition: string) {
+  const rows = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  const exists = rows.some((row) => row.name === column);
+
+  if (!exists) {
+    database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }

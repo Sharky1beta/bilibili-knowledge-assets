@@ -4,6 +4,8 @@ import { StatusPill } from "@/components/status-pill";
 import { UrlIntake } from "@/components/url-intake";
 import { createDemoAsset, listAssets } from "@/lib/db/assets";
 
+export const dynamic = "force-dynamic";
+
 const steps = [
   "Metadata",
   "Stream",
@@ -60,10 +62,16 @@ export default function HomePage() {
                       {asset.description ?? "Waiting for metadata and visual evidence extraction."}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
+                      <span>{asset.aid ? `av${asset.aid}` : "aid pending"}</span>
                       <span>{asset.bvid ?? "BV pending"}</span>
+                      <span>{asset.cid ? `cid ${asset.cid}` : "cid pending"}</span>
                       <span>{asset.ownerName ?? "Owner pending"}</span>
                       <span>{asset.duration ? `${Math.round(asset.duration / 60)} min` : "Duration pending"}</span>
+                      <span>{asset.pageCount ? `${asset.pageCount} page${asset.pageCount > 1 ? "s" : ""}` : "pages pending"}</span>
                     </div>
+                    {asset.errorMessage ? (
+                      <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">{asset.errorMessage}</p>
+                    ) : null}
                   </div>
                   <div className="flex items-center text-sm font-semibold text-[var(--accent)]">
                     Open

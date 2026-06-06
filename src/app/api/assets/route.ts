@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { createAsset, listAssets } from "@/lib/db/assets";
+import { fetchBilibiliMetadata } from "@/lib/bilibili/client";
+import { parseBilibiliInput } from "@/lib/bilibili/parser";
+import { applyAssetMetadata, createAsset, listAssets, markAssetFailed } from "@/lib/db/assets";
 
 export async function GET() {
   return NextResponse.json({ assets: listAssets() });
@@ -13,12 +15,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Provide a Bilibili URL." }, { status: 400 });
   }
 
-  if (!url.includes("bilibili.com") && !/^BV[a-zA-Z0-9]+$/.test(url)) {
-    return NextResponse.json({ error: "Only public Bilibili URLs or BV ids are supported." }, { status: 400 });
+  const parsed = parseBilibiliInput(url);
+  if (!parsed) {
+    return NextResponse.json({ error: "Only public Bilibili URLs, BV ids, or av ids are supported." }, { status: 400 });
   }
 
-  const normalizedUrl = /^BV[a-zA-Z0-9]+$/.test(url) ? `https://www.bilibili.com/video/${url}` : url;
-  const asset = createAsset(normalizedUrl);
+  const createdAsset = createAsset(parsed.normalizedUrl);
 
-  return NextResponse.json({ assetId: asset.id, asset });
+  try {
+    const metadata = await fetchBilibiliMetadata(parsed.normalizedUrl);
+    const asset = applyAssetMetadata(createdAsset.id, metadata);
+
+    return NextResponse.json({ assetId: asset.id, asset });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch Bilibili metadata.";
+    const asset = markAssetFailed(createdAsset.id, message);
+
+    return NextResponse.json({ assetId: asset.id, asset, warning: message }, { status: 202 });
+  }
 }

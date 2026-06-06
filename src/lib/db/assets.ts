@@ -1,16 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/db/client";
+import type { BilibiliMetadata } from "@/lib/bilibili/client";
 import type { Asset, Frame, GeneratedOutput, KnowledgeItem, OutputMode, Segment } from "@/lib/types";
 
 type AssetRow = {
   id: string;
+  aid: number | null;
   bvid: string | null;
+  cid: number | null;
   url: string;
   title: string;
   description: string | null;
   owner_name: string | null;
   duration: number | null;
   cover_url: string | null;
+  tags_json: string;
+  page_count: number | null;
   status: Asset["status"];
   error_message: string | null;
   created_at: string;
@@ -108,13 +113,66 @@ export function createAsset(url: string): Asset {
   getDb()
     .prepare(
       `INSERT INTO assets (
-        id, bvid, url, title, description, owner_name, duration, cover_url,
+        id, aid, bvid, cid, url, title, description, owner_name, duration, cover_url, tags_json, page_count,
         status, error_message, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(id, bvid, url, title, null, null, null, null, "created", null, now, now);
+    .run(id, null, bvid, null, url, title, null, null, null, null, JSON.stringify([]), null, "created", null, now, now);
 
   return getAssetDetail(id)!.asset;
+}
+
+export function applyAssetMetadata(assetId: string, metadata: BilibiliMetadata): Asset {
+  const now = new Date().toISOString();
+
+  getDb()
+    .prepare(
+      `UPDATE assets
+       SET aid = ?,
+           bvid = ?,
+           cid = ?,
+           url = ?,
+           title = ?,
+           description = ?,
+           owner_name = ?,
+           duration = ?,
+           cover_url = ?,
+           tags_json = ?,
+           page_count = ?,
+           status = ?,
+           error_message = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(
+      metadata.aid,
+      metadata.bvid,
+      metadata.cid,
+      metadata.canonicalUrl,
+      metadata.title,
+      metadata.description,
+      metadata.ownerName,
+      metadata.duration,
+      metadata.coverUrl,
+      JSON.stringify(metadata.tags),
+      metadata.pageCount,
+      "metadata_fetched",
+      null,
+      now,
+      assetId,
+    );
+
+  return getAssetDetail(assetId)!.asset;
+}
+
+export function markAssetFailed(assetId: string, errorMessage: string): Asset {
+  const now = new Date().toISOString();
+
+  getDb()
+    .prepare("UPDATE assets SET status = ?, error_message = ?, updated_at = ? WHERE id = ?")
+    .run("failed", errorMessage, now, assetId);
+
+  return getAssetDetail(assetId)!.asset;
 }
 
 export function createDemoAsset() {
@@ -130,19 +188,23 @@ export function createDemoAsset() {
   getDb()
     .prepare(
       `INSERT INTO assets (
-        id, bvid, url, title, description, owner_name, duration, cover_url,
+        id, aid, bvid, cid, url, title, description, owner_name, duration, cover_url, tags_json, page_count,
         status, error_message, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       "asset_demo_visual",
+      100000001,
       "BV1demo",
+      200000001,
       "https://www.bilibili.com/video/BV1demo",
       "Demo: visual-only facts in a technical video",
       "Seed asset used to verify the reusable asset workflow before video processing is wired.",
       "Knowledge Clip Studio",
       968,
       null,
+      JSON.stringify(["demo", "visual evidence", "RAG"]),
+      1,
       "ready",
       null,
       now,
@@ -251,13 +313,17 @@ function extractBvid(input: string) {
 function mapAsset(row: AssetRow): Asset {
   return {
     id: row.id,
+    aid: row.aid,
     bvid: row.bvid,
+    cid: row.cid,
     url: row.url,
     title: row.title,
     description: row.description,
     ownerName: row.owner_name,
     duration: row.duration,
     coverUrl: row.cover_url,
+    tags: JSON.parse(row.tags_json || "[]") as string[],
+    pageCount: row.page_count,
     status: row.status,
     errorMessage: row.error_message,
     createdAt: row.created_at,
