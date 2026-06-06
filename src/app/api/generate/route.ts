@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateOutputContent } from "@/lib/ai/outputs";
-import { getAssetDetail, saveGeneratedOutput } from "@/lib/db/assets";
+import { getAssetDetail, markBuiltAssetsReady, saveGeneratedOutput } from "@/lib/db/assets";
 import type { OutputMode } from "@/lib/types";
 
 const modes = new Set<OutputMode>(["illustrated_summary", "evidence_cards", "multi_video_synthesis"]);
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
   const validDetails = details.filter(Boolean) as NonNullable<ReturnType<typeof getAssetDetail>>[];
   const { content, usedFallback, warning } = await generateOutputContent(mode, validDetails, prompt);
   const output = saveGeneratedOutput(mode, assetIds, prompt, content);
+  const assets = markBuiltAssetsReady(assetIds);
 
-  return NextResponse.json({ outputId: output.id, content, usedFallback, warning });
+  return NextResponse.json({ outputId: output.id, content, usedFallback, warning, assets });
 }

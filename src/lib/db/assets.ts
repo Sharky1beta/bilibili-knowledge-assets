@@ -194,6 +194,25 @@ export function updateAssetStatus(assetId: string, status: Asset["status"], erro
   return getAssetDetail(assetId)!.asset;
 }
 
+export function markBuiltAssetsReady(assetIds: string[]): Asset[] {
+  if (!assetIds.length) {
+    return [];
+  }
+
+  const now = new Date().toISOString();
+  const updateReady = getDb().prepare(
+    "UPDATE assets SET status = ?, error_message = ?, updated_at = ? WHERE id = ? AND status = ?",
+  );
+
+  for (const assetId of assetIds) {
+    updateReady.run("ready", null, now, assetId, "asset_built");
+  }
+
+  return assetIds
+    .map((assetId) => getAssetDetail(assetId)?.asset)
+    .filter(Boolean) as Asset[];
+}
+
 export function replaceAssetFrames(assetId: string, frames: ExtractedFrame[]): Frame[] {
   const database = getDb();
   const deleteFrames = database.prepare("DELETE FROM frames WHERE asset_id = ?");
